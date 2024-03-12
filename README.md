@@ -74,7 +74,7 @@ This problem arises from the fact that transfer times are usually counted in mil
 $min(\sum_{n}A_{n} + \sum_{n}\frac{A_{n} * V}{W_{nd}}) \\ 
 A_{n} \in \{0,1\}, \forall n \in N, \forall d \in D$
 
-## Placement approaches & topologies & Metrics
+## Placement approaches & Τopologies & Metrics
 **Placement approaches**:
 
  - Integer Linear Programming (ILP)
