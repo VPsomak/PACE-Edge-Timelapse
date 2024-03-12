@@ -44,7 +44,7 @@ if len(sys.argv) == 3:
 else:
     print ("Wrong number of arguments!\n")
     print ("Example: python3 grapher.py [model] [algorithm] \n")
-    print ("Available models [ilp, approximation, bruteforce, branchandbound, genetic] \n")
+    print ("Available models [ilp, approximation, greedy, genetic] \n")
     print ("Available graphs [binomial_tree, balanced_tree, star, barabasi_albert, erdos_renyi, newman_watts_strogatz]")
     sys.exit()
 
@@ -174,22 +174,22 @@ def create_continuum(size=64, degree=3, branching_factor_of_tree=4, height_of_tr
                 G2[sp[j]][sp[j + 1]]['time'] = G2[sp[j]][sp[j + 1]]['usage'] / G2[sp[j]][sp[j + 1]]['capacity']
                 #print(f"Usage of channel {sp[j]} to {sp[j+1]} is {G2[sp[j]][sp[j + 1]]['time']*100}")
 
-    elif model == "bruteforce":
-        res = []
-        bruteForce.vertex_cover_brute(G2, res)
-        nodes_with_image = res[0]
-        shortest_paths = nx.shortest_path(G2)
-        nearest_image = []
-        for active_node in nodes_activated:
-            nearest_image.append(min(nodes_with_image, key=lambda x: len(shortest_paths[active_node][x])))
-        for i in range(len(nodes_activated)):
-            sp = (shortest_paths[nodes_activated[i]][nearest_image[i]])
-            # print(f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
-            for j in range(len(sp) - 1):
-                G2[sp[j]][sp[j + 1]]['usage'] += imageSize
-                G2[sp[j]][sp[j + 1]]['numImages'] = round(G2[sp[j]][sp[j + 1]]['usage'] / imageSize, 4)
-                G2[sp[j]][sp[j + 1]]['time'] = G2[sp[j]][sp[j + 1]]['usage'] / G2[sp[j]][sp[j + 1]]['capacity']
-                # print(f"Usage of channel {sp[j]} to {sp[j + 1]} is {G2[sp[j]][sp[j + 1]]['time'] * 100}")
+    # elif model == "bruteforce":
+    #     res = []
+    #     bruteForce.vertex_cover_brute(G2, res)
+    #     nodes_with_image = res[0]
+    #     shortest_paths = nx.shortest_path(G2)
+    #     nearest_image = []
+    #     for active_node in nodes_activated:
+    #         nearest_image.append(min(nodes_with_image, key=lambda x: len(shortest_paths[active_node][x])))
+    #     for i in range(len(nodes_activated)):
+    #         sp = (shortest_paths[nodes_activated[i]][nearest_image[i]])
+    #         # print(f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
+    #         for j in range(len(sp) - 1):
+    #             G2[sp[j]][sp[j + 1]]['usage'] += imageSize
+    #             G2[sp[j]][sp[j + 1]]['numImages'] = round(G2[sp[j]][sp[j + 1]]['usage'] / imageSize, 4)
+    #             G2[sp[j]][sp[j + 1]]['time'] = G2[sp[j]][sp[j + 1]]['usage'] / G2[sp[j]][sp[j + 1]]['capacity']
+    #             # print(f"Usage of channel {sp[j]} to {sp[j + 1]} is {G2[sp[j]][sp[j + 1]]['time'] * 100}")
 
     elif model == "greedy":
         res = []
@@ -210,24 +210,24 @@ def create_continuum(size=64, degree=3, branching_factor_of_tree=4, height_of_tr
                 G2[sp[j]][sp[j + 1]]['time'] = G2[sp[j]][sp[j + 1]]['usage'] / G2[sp[j]][sp[j + 1]]['capacity']
                 # print(f"Usage of channel {sp[j]} to {sp[j + 1]} is {G2[sp[j]][sp[j + 1]]['time'] * 100}")
 
-    elif model == "branchandbound":
-        res = []
-        branchandbound.Branch_and_Bound(G2, res)
-        nodes_with_image = res[0][0]
-
-        # print (nodes_with_image)
-        shortest_paths = nx.shortest_path(G2)
-        nearest_image = []
-        for active_node in nodes_activated:
-            nearest_image.append(min(nodes_with_image, key=lambda x: len(shortest_paths[active_node][x])))
-        for i in range(len(nodes_activated)):
-            sp = (shortest_paths[nodes_activated[i]][nearest_image[i]])
-            # print(f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
-            for j in range(len(sp) - 1):
-                G2[sp[j]][sp[j + 1]]['usage'] += imageSize
-                G2[sp[j]][sp[j + 1]]['numImages'] = round(G2[sp[j]][sp[j + 1]]['usage'] / imageSize, 4)
-                G2[sp[j]][sp[j + 1]]['time'] = G2[sp[j]][sp[j + 1]]['usage'] / G2[sp[j]][sp[j + 1]]['capacity']
-                # print(f"Usage of channel {sp[j]} to {sp[j + 1]} is {G2[sp[j]][sp[j + 1]]['time'] * 100}")
+    # elif model == "branchandbound":
+    #     res = []
+    #     branchandbound.Branch_and_Bound(G2, res)
+    #     nodes_with_image = res[0][0]
+    #
+    #     # print (nodes_with_image)
+    #     shortest_paths = nx.shortest_path(G2)
+    #     nearest_image = []
+    #     for active_node in nodes_activated:
+    #         nearest_image.append(min(nodes_with_image, key=lambda x: len(shortest_paths[active_node][x])))
+    #     for i in range(len(nodes_activated)):
+    #         sp = (shortest_paths[nodes_activated[i]][nearest_image[i]])
+    #         # print(f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
+    #         for j in range(len(sp) - 1):
+    #             G2[sp[j]][sp[j + 1]]['usage'] += imageSize
+    #             G2[sp[j]][sp[j + 1]]['numImages'] = round(G2[sp[j]][sp[j + 1]]['usage'] / imageSize, 4)
+    #             G2[sp[j]][sp[j + 1]]['time'] = G2[sp[j]][sp[j + 1]]['usage'] / G2[sp[j]][sp[j + 1]]['capacity']
+    #             # print(f"Usage of channel {sp[j]} to {sp[j + 1]} is {G2[sp[j]][sp[j + 1]]['time'] * 100}")
 
     elif model == "genetic":
         res = []
