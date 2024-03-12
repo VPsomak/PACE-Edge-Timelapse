@@ -1,4 +1,4 @@
-# Pro-active Component Image Placement in Edge Computing Environments (PACE-Edge)
+# PACE-Edge: Pro-active Component Image Placement in Edge Computing Environments
   
 We model the problem of proactive placement of application images in Edge computing as a Minimum Vertex Cover (MVC) problem. 
 
