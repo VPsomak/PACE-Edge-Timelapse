@@ -103,10 +103,9 @@ A_{n} \in \{0,1\}, \forall n \in N, \forall d \in D$
   
 ```python3 grapher.py [model] [algorithm]```  
 
- - Available placement algorithms: [ilp, approximation, bruteforce,
-   branchandbound, genetic]  
+ - Available placement algorithms: [ilp, approximation, greedy, genetic]  
    
- - Available graph topologies: [binomial_tree,   balanced_tree, star, barabasi_albert, erdos_renyi,    newman_watts_strogatz]
+ - Available graph topologies: [binomial_tree, balanced_tree, star, barabasi_albert, erdos_renyi, newman_watts_strogatz]
 
 ### Example
 ```python3 grapher.py genetic barabasi_albert```
