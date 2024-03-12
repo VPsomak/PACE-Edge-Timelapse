@@ -17,19 +17,19 @@ $R$ and $W$ are considered as constants for each specific time window $t_0+K$, w
 
   - Node $s$ & Source node of a data object  
 
-  Node $d$ & Destination node of a data object 
+  - Node $d$ & Destination node of a data object 
 
-  $V_{obj}$ & Volume of data object 
+  - $V_{obj}$ & Volume of data object 
 
-  $R_s$   & Charge rate for data storage in node $s$ 
+  - $R_s$   & Charge rate for data storage in node $s$ 
 
-  $W_{sd}$ & Available link bandwidth between nodes $s$ and $d$ 
+  - $W_{sd}$ & Available link bandwidth between nodes $s$ and $d$ 
 
-  $K$      & Time constraint for data object transfer $\forall$ node $d$
+  - $K$      & Time constraint for data object transfer $\forall$ node $d$
 
-  $F$      & Cost function of data object placement on node $s$ 
+  - $F$      & Cost function of data object placement on node $s$ 
 
-  $N$      & Set of all nodes in the network
+  - $N$      & Set of all nodes in the network
 
 
 **Solution Space**
