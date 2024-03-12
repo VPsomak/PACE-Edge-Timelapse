@@ -108,7 +108,5 @@ A_{n} \in \{0,1\}, \forall n \in N, \forall d \in D$
    
  - Available graph topologies: [binomial_tree,   balanced_tree, star, barabasi_albert, erdos_renyi,    newman_watts_strogatz]
 
-
-
-  
+### Example
 ```python3 grapher.py genetic barabasi_albert```
