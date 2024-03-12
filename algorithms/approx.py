@@ -3,7 +3,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from operator import itemgetter
 
-
 def vertex_cover_approx(graph, size_, res):
     # generate all edges present in graph
     edges = graph.edges
