@@ -15,7 +15,7 @@ $R$ and $W$ are considered as constants for each specific time window $t_0+K$, w
 
   **Notation & Description**
 
-  Node $s$ & Source node of a data object  
+  - Node $s$ & Source node of a data object  
 
   Node $d$ & Destination node of a data object 
 
