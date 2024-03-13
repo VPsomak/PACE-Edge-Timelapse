@@ -2,9 +2,11 @@
   
 We model the problem of proactive placement of application images in Edge computing as a Minimum Vertex Cover (MVC) problem. 
 
+Given an undirected graph $G = (V,E)$, a vertex cover is a subset of vertices $S \subseteq V$, such that for each edge $(u, v) \in E$, either $u \in S$ or $v \in S$, or both. That is, each vertex ``covers'' its incident edges, and a vertex cover for $G$ is a set of vertices that covers all the edges in $E$. The optimization version of the VC problem is to find a vertex cover of minimum size in a given graph, so called minimum vertex cover. 
+
 ## Set Cover Problem
 
-In this section, the proposed approach for the set cover problem is presented. Specifically, we first present the problem formulation, the constraints, and the optimization goal of the problem. Then, it demonstrates the solution space, thus presenting the data placement architecture. Finally, itintroduces the transformation of set cover to an optimization problem.
+In this section, the proposed approach for the set cover problem is presented. Specifically, we first present the problem formulation, the constraints, and the optimization goal of the problem. Then, it demonstrates the solution space, thus presenting the data placement architecture. Finally, it introduces the transformation of set cover to an optimization problem.
 
 **Problem formulation**. Locate the nodes on which one or more replicas of the data objects must be placed in order to achieve the constraint for all nodes $d$, while minimizing the cost function for the whole network.
 
