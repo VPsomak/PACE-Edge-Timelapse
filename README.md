@@ -40,27 +40,31 @@ $TC_i = \sum_s{F(V_{obj},C_s,R_s) \mid \forall s \in DP_i}]$
 **Optimization Problem**
 We formalize the problem we want to solve as an optimization problem, i.e. in terms of objective function and constraints. In order to achieve that, the objective function and the restraints need to be adjusted in a form more fitting to linear optimization logic. The objective function can be considered a function of only the activated nodes and the volume of the image being transferred because, as discussed, all the other variables ($R,W$) are considered constants for the duration $K$ we are examining. The new objective function, which is also our minimization target is described as follows:
 
+<p align="center">
 $min(\sum_{n}(A_{n} * V)) \mid A_{n} \in \{0,1\}, \forall n \in N$
-
+</p>
 
 This new objective function employs a new set of variables $A_{n}$ which are binary, taking the values of 1 or 0, describing the activated or deactivated state of a node $n$ respectively. In our case, activation means that node $n$ is holding a replica of the image and is able to distribute it to other nodes that are connected to it. 
 The next step in defining a linear optimization problem is defining the set of restraints that need to be applied which are the following:
 
+<p align="center">
 $\exists n \in N: A_{n} * V / W_{nd} < K \mid \exists d \in D$
-
+</p>
 
 This equation describes the restraint posed by the transfer time threshold. It states that if the optimization algorithm decides to activate a node $n$, it must ensure that the transfer time of the image from that node, given by the division of the image's volume $V$ and the available bandwidth $W_{nd}$ between the activated node $n$ and at least one destination node $d$ in the list of destination nodes $D$ that are requesting the image, must be under the threshold $K$. If the node is not activated the value of $A_{n}$ would be 0 so the restraint would hold true anyway. 
 
 Trying to implement "at least one'' in a practical linear optimization algorithm is almost impossible. For this reason, we need to reformat this function, viewing it from different angles that encompass it. The rewritten format denotes that for each destination node $d$ the total transfer time of images from all nodes $n$ must be more than zero, ensuring that at least one of the nodes $n$ is activated and able to serve the image to the destination node $d$. This is described in the following function:
 
+<p align="center">
 $\sum_{n}(A_{n} * V /  W_{nd}) > 0 \mid \forall n \in N, \forall d \in D$
-
+</p>
 
 Moreover, we need to ensure that the activated nodes are transferring the image following as close as possible to the time threshold $K$. This means that we have to relax the constraint of the time threshold, reducing it to a "should" rule instead of a "must" rule. This relaxation practically means that we expect some slight violations of the constraint to happen, translating into possible QoS violations in a real-life scenario. Since our target is the minimization of the function we can just include the minimization of total transfer time, which ensures that the transfer time will be kept as low as possible, covering, in most cases, our need for a transfer time lower than the threshold $K$. In order to mathematically depict this change we have to reformat our objective function, having the transfer time included in it as follows:
 
+<p align="center">
 $min(\sum_{n}(A_{n} * V) + \sum_{n}\frac{A_{n} * V}{W_{nd}}) \\ 
 A_{n} \in \{0,1\}, \forall n \in N, \forall d \in D$
-
+</p>
 
 Now that the objective function has two factors in it, another problem arises; we need to balance these two factors in order to have an equal impact on the final value of the function.
 This problem arises from the fact that transfer times are usually counted in milliseconds while volume is counted in megabytes or gigabytes, which means that a change in the first factor of the function would greatly affect the final value while a change in the second factor would have only a slight effect. For that reason, we decided to remove the volume value from the first factor, applying only the sum of $A_{n}$ variables as a weight on the total transfer time in the network. This means that if a solution achieves the same or less total transfer time while using fewer nodes as image sources then it will be preferred over the others. ***The final objective function is the following***:
