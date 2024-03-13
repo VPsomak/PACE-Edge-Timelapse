@@ -67,7 +67,9 @@ A_{n} \in \{0,1\}, \forall n \in N, \forall d \in D$
 </p>
 
 Now that the objective function has two factors in it, another problem arises; we need to balance these two factors in order to have an equal impact on the final value of the function.
-This problem arises from the fact that transfer times are usually counted in milliseconds while volume is counted in megabytes or gigabytes, which means that a change in the first factor of the function would greatly affect the final value while a change in the second factor would have only a slight effect. For that reason, we decided to remove the volume value from the first factor, applying only the sum of $A_{n}$ variables as a weight on the total transfer time in the network. This means that if a solution achieves the same or less total transfer time while using fewer nodes as image sources then it will be preferred over the others. ***The final objective function is the following***:
+This problem arises from the fact that transfer times are usually counted in milliseconds while volume is counted in megabytes or gigabytes, which means that a change in the first factor of the function would greatly affect the final value while a change in the second factor would have only a slight effect. For that reason, we decided to remove the volume value from the first factor, applying only the sum of $A_{n}$ variables as a weight on the total transfer time in the network. This means that if a solution achieves the same or less total transfer time while using fewer nodes as image sources then it will be preferred over the others. 
+
+***The final objective function is the following***:
 
 <p align="center">
 $min(\sum_{n}A_{n} + \sum_{n}\frac{A_{n} * V}{W_{nd}}) \\ 
