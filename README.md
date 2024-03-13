@@ -15,23 +15,16 @@ Optimization Goal. $min(F(K,Vobj,Rs))$
 
 $R$ and $W$ are considered as constants for each specific time window $t_0+K$, where $t_0$ is the starting time of our time window. That means that we are taking a snapshot of the network’s state at time $t_0$, and this snapshot has a lifetime of $K$. We are considering the available bandwidth $W_{sd}$ as equal to $W_{ds}$, meaning that the direction of the edge is not affecting its available bandwidth. To formulate the feasible solution space, we are considering all combinations of data placement on nodes s, having one or more replicas of the data object, and pruning all combinations that fail to achieve the constraint set by $K$ for each node $d$. Each such combination is considered a feasible solution. As optimal solutions, we consider the ones that are feasible and minimize the cost function $F$ for all nodes involved in them. Main notations are summarized below.
 
-  **Notation & Description**
-
-  - Node $s$ & Source node of a data object  
-
-  - Node $d$ & Destination node of a data object 
-
-  - $V_{obj}$ & Volume of data object 
-
-  - $R_s$   & Charge rate for data storage in node $s$ 
-
-  - $W_{sd}$ & Available link bandwidth between nodes $s$ and $d$ 
-
-  - $K$      & Time constraint for data object transfer $\forall$ node $d$
-
-  - $F$      & Cost function of data object placement on node $s$ 
-
-  - $N$      & Set of all nodes in the network
+| Notation | Description |
+|--|--|
+| Node $s$ | Source node of a data object  |
+|Node $d$  |Destination node of a data object |
+|$V_{obj}$|Volume of data object |
+|$R_s$|Charge rate for data storage in node $s$ |
+|$W_{sd}$|Available link bandwidth between nodes $s$ and $d$|
+|$K$|Time constraint for data object transfer $\forall$ node $d$ |
+|$F$|Cost function of data object placement on node $s$|
+|$N$|Set of all nodes in the network|
 
 
 **Solution Space**
