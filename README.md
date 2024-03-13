@@ -96,7 +96,7 @@ A_{n} \in \{0,1\}, \forall n \in N, \forall d \in D$
 **Evaluation metrics**:
 
  - **Execution time**: refers to the total amount of time each algorithm requires to produce a solution
- - **Approximation ratio**: it is defined as the ratio of the VCS produced by an algorithm over the VCS produced by the optimal solution. ILP algorithm is guaranteed to be the optimal solution in producing the minimum vertex cover for a given graph and, therefore, is utilized as the benchmark of correctness, by which the approximation ratio seeks to evaluate all other algorithms with. 
+ - **Approximation ratio**: it is defined as the ratio of the VCS produced by an algorithm over the VCS produced by the optimal solution and is formulated as $AR =  \frac{VCS_{algorithm}}{VCS_{OPT}}$. ILP algorithm is guaranteed to be the optimal solution in producing the minimum vertex cover for a given graph and, therefore, is utilized as the benchmark of correctness, by which the approximation ratio seeks to evaluate all other algorithms with. 
 -  **Cost function**: is the same as the objective function 
 - **Vertex cover set size**: the size of vertices in vertex cover
 
