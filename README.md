@@ -2,7 +2,7 @@
   
 We model the problem of proactive placement of application images in Edge computing as a Minimum Vertex Cover (MVC) problem. 
 
-Given an undirected graph $G = (V,E)$, a vertex cover is a subset of vertices $S \subseteq V$, such that for each edge $(u, v) \in E$, either $u \in S$ or $v \in S$, or both. That is, each vertex ``covers'' its incident edges, and a vertex cover for $G$ is a set of vertices that covers all the edges in $E$. The optimization version of the VC problem is to find a vertex cover of minimum size in a given graph, so called minimum vertex cover. 
+Given an undirected graph $G = (V,E)$, a vertex cover is a subset of vertices $S \subseteq V$, such that for each edge $(u, v) \in E$, either $u \in S$ or $v \in S$, or both. That is, each vertex "covers" its incident edges, and a vertex cover for $G$ is a set of vertices that covers all the edges in $E$. The optimization version of the VC problem is to find a vertex cover of minimum size in a given graph, so called minimum vertex cover. 
 
 ## Set Cover Problem
 
