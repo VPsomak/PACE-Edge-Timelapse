@@ -100,7 +100,49 @@ A_{n} \in \{0,1\}, \forall n \in N, \forall d \in D$
 -  **Cost function**: is the same as the objective function. This function calculates a cost based on the number of image replicas placed on the network as well as the transfer delays, in order to share the image between all network nodes.
 - **Vertex cover set size**: the size of vertices in vertex cover
 
- 
+## Customizing Input Parameters for Network Topologies
+
+**Modifying Input Parameters:**
+
+The `create_continuum` function offers flexibility in modifying input parameters for different network topologies. Users can adjust the parameters according to their specific requirements to generate networks with varying characteristics. Below are the input parameters that can be customized for each network topology:
+
+- For the "binomial_tree" topology, the `size` parameter specifies the size of the tree.
+- For the "balanced_tree" topology, users can modify the `branching_factor_of_tree` and `height_of_tree` parameters to control the branching factor and height of the tree, respectively.
+- The "star" topology allows users to adjust the `size` parameter to define the number of nodes in the star.
+- In the case of the "barabasi_albert" topology, users can specify the `size` and `degree` parameters to determine the number of nodes and the average degree of the network, respectively.
+- For the "erdos_renyi" topology, users can modify the `size` and `probability` parameters to set the number of nodes and the probability of edge creation, respectively.
+- Lastly, the "newman_watts_strogatz" topology provides flexibility in adjusting the `size`, `knearest`, and `probability` parameters to control the number of nodes, the number of nearest neighbors each node is connected to, and the probability of adding new edges, respectively.
+
+By customizing these input parameters, users can tailor the generated network structures to suit their research or application needs effectively.
+
+```python
+def create_continuum(size=64, degree=3, branching_factor_of_tree=4, height_of_tree=4, knearest=7, probability=0.7):  
+  if graph =="binomial_tree":  
+      G2 = nx.generators.classic.binomial_tree(size)  
+  elif graph =="balanced_tree":  
+      # balanced_tree(r, h, create_using=None),  
+      # r - Branching factor of the tree; each node will have r children. 
+      # h - Height of the tree.  
+      G2 = nx.generators.classic.balanced_tree(branching_factor_of_tree, height_of_tree)  
+  elif graph =="star":  
+      G2 = nx.star_graph(size)  
+  elif graph =="barabasi_albert":  
+      # barabasi_albert_graph(n, m, seed=None)  
+      # n: Number of nodes 
+      # m: Number of edges to attach from a new node to existing nodes  
+      G2 = nx.barabasi_albert_graph(size, degree)  
+  elif graph =="erdos_renyi":  
+      # erdos_renyi_graph(n, p, seed=None, directed=False)  
+      # n: Number of nodes # p: Probability of edge creation  
+      G2 = nx.erdos_renyi_graph(size, probability, seed=None, directed=False)  
+  elif graph =="newman_watts_strogatz":  
+      # n: The number of nodes.  
+      # k: Each node is joined with its k nearest neighbors in a ring topology. 
+      # p: The probability of adding a new edge for each edge.  
+      G2 = nx.newman_watts_strogatz_graph(size, knearest, probability, seed=None)
+ ```
+
+
 ## Usage:  
   
 ```python3 grapher.py [model] [algorithm]```  
