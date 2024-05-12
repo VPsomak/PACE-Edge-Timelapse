@@ -145,11 +145,11 @@ def create_continuum(size=64, degree=3, branching_factor_of_tree=4, height_of_tr
 
 ## Usage:  
   
-```python3 grapher.py [model] [algorithm]```  
+```python3 main.py [model] [algorithm]```  
 
  - Available placement algorithms: [ilp, approximation, greedy, genetic]  
    
  - Available graph topologies: [binomial_tree, balanced_tree, star, barabasi_albert, erdos_renyi, newman_watts_strogatz]
 
 ### Example
-```python3 grapher.py genetic barabasi_albert```
+```python3 main.py genetic barabasi_albert```
