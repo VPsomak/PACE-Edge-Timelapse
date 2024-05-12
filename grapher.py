@@ -38,7 +38,6 @@ class Grapher():
         self.bandwidthlocalfile = kwargs.get('bandwidthlocalfile',0.5*1024*1024)
         self.activated_ratio = kwargs.get('activated_ratio',1.0)
         self.name = kwargs.get('name','grapher')
-        self.hosts = kwargs.get('hosts',{})
         self.graph = kwargs.get('graph',None)
         try:
             self.model = kwargs['model']
@@ -86,7 +85,10 @@ class Grapher():
         print("--Vertices:", len(self.graph.nodes), "--Edges:", len(self.graph.edges), "\n")
 
         NODES = self.graph.number_of_nodes()
-        self.nodes_activated = np.random.choice(NODES, ceil(NODES*self.activated_ratio), replace=False)
+        nodes_activated = np.random.choice(NODES, ceil(NODES*self.activated_ratio), replace=False)
+        nx.set_node_attributes(self.graph, values=False, name='activated')
+        nx.set_node_attributes(self.graph, values={node:True for node in nodes_activated}, name='activated')
+        nx.set_node_attributes(self.graph, values=False, name='host')
 
         # Attributes to the graph
         edgeCapacities = {}
@@ -116,6 +118,9 @@ class Grapher():
     def solve(self):
         if self.graph is None:
             self.create_continuum()
+
+        nodes_activated = [node for node,data in self.graph.nodes(data=True) if data['activated']]
+        hosts = [node for node,data in self.graph.nodes(data=True) if data['host']]
 
         start_time = time.time()
 
@@ -147,10 +152,10 @@ class Grapher():
             # print(nodes_with_image)
             shortest_paths = nx.shortest_path(self.graph)
             nearest_image = []
-            for active_node in self.nodes_activated:
+            for active_node in nodes_activated:
                 nearest_image.append(min(nodes_with_image, key=lambda x: len(shortest_paths[active_node][x])))
-            for i in range(len(self.nodes_activated)):
-                sp = (shortest_paths[self.nodes_activated[i]][nearest_image[i]])
+            for i in range(len(nodes_activated)):
+                sp = (shortest_paths[nodes_activated[i]][nearest_image[i]])
                 #print (f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
                 for j in range(len(sp) - 1):
                     self.graph[sp[j]][sp[j + 1]]['usage'] +=self.imageSize
@@ -167,10 +172,10 @@ class Grapher():
             # print(nodes_with_image)
             shortest_paths = nx.shortest_path(self.graph)
             nearest_image = []
-            for active_node in self.nodes_activated:
+            for active_node in nodes_activated:
                 nearest_image.append(min(nodes_with_image, key=lambda x: len(shortest_paths[active_node][x])))
-            for i in range(len(self.nodes_activated)):
-                sp = (shortest_paths[self.nodes_activated[i]][nearest_image[i]])
+            for i in range(len(nodes_activated)):
+                sp = (shortest_paths[nodes_activated[i]][nearest_image[i]])
                 # print(f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
                 for j in range(len(sp) - 1):
                     self.graph[sp[j]][sp[j + 1]]['usage'] += self.imageSize
@@ -194,24 +199,19 @@ class Grapher():
             print("Available models [ilp, approximation, bruteforce, branchandbound, genetic] \n")
             sys.exit()
 
-
-        # Execution Time
-        print("\n","Execution Time: %s seconds" % (time.time() - start_time))
-        # Nodes with image
-        print(f"nodes nodes_with_image {nodes_with_image}")
-        print ("Length of nodes with images", len(nodes_with_image))
-        print(f"Cost function value: {self.getScore(self.graph,nodes_with_image)}")
+        nx.set_node_attributes(self.graph, values={node:True for node in nodes_with_image}, name='host')
 
         score_text = f"Execution Time: {round(time.time() - start_time,4)} seconds"
         score_text += f"\nNodes with image {len(nodes_with_image)}"
         score_text += f"\nCost {round(self.getScore(self.graph,nodes_with_image),4)}"
+        print(score_text)
 
-        vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=self.nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
+        vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
         vis.visualize_full(filename=f"graphs/{self.name}_{self.model}_{self.graph_type}_full.jpg")
 
         edges_to_remove = [(u, v) for u, v, d in self.graph.edges(data=True) if d['time'] == 0]
         self.graph.remove_edges_from(edges_to_remove)
-        vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=self.nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
+        vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
         vis.visualize_full(filename=f"graphs/{self.name}_{self.model}_{self.graph_type}_reduced.jpg")
 
         #print("Approximation Ratio: ", "{:.2f}".format(len(nodes_with_image) / len(nodes_with_image_OPT)))
