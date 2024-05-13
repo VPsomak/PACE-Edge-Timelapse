@@ -22,6 +22,7 @@ import numpy.random
 import time
 from math import ceil
 from utils import Visualizer
+from pathlib import Path
 # import satispy
 
 class Grapher():
@@ -238,18 +239,23 @@ class Grapher():
         nx.set_node_attributes(self.graph, values={node:True for node in nodes_with_image}, name='host')
 
         score_text = f"Execution Time: {round(time.time() - start_time,4)} seconds"
-        score_text += f"\nNodes with image {len(nodes_with_image)}"
-        score_text += f"\nCost {round(self.getScore(self.graph,nodes_with_image),4)}"
+        score_text += f"\nModel: {len(self.model)}"
+        score_text += f"\nGraph: {len(self.graph_type)}"
+        score_text += f"\nTotal nodes: {len(self.graph.nodes)}"
+        score_text += f"\nNodes with image: {len(nodes_with_image)}"
+        score_text += f"\nNodes activated: {len(nodes_activated)}"
+        score_text += f"\nCost: {round(self.getScore(self.graph,nodes_with_image),4)}"
         print(score_text)
 
         vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
-        self.pos = vis.visualize_full(filename=f"graphs/{self.name}_{self.model}_{self.graph_type}_full.jpg",pos=self.pos)
+        Path(f"graphs/{self.model}/reducted").mkdir(parents=True, exist_ok=True)
+        self.pos = vis.visualize_full(filename=f"graphs/{self.model}/{self.name}_{self.model}_{self.graph_type}_full.jpg",pos=self.pos)
 
-        #subgraph = self.graph.copy()
-        #edges_to_remove = [(u, v) for u, v, d in self.graph.edges(data=True) if d['time'] == 0]
-        #subgraph.remove_edges_from(edges_to_remove)
-        #vis = Visualizer(graph=subgraph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
-        #vis.visualize_full(filename=f"graphs/{self.name}_{self.model}_{self.graph_type}_reduced.jpg")
+        subgraph = self.graph.copy()
+        edges_to_remove = [(u, v) for u, v, d in self.graph.edges(data=True) if d['time'] == 0]
+        subgraph.remove_edges_from(edges_to_remove)
+        vis = Visualizer(graph=subgraph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
+        vis.visualize_full(filename=f"graphs/{self.model}/reducted/{self.name}_{self.model}_{self.graph_type}_reduced.jpg")
 
         # print("Approximation Ratio: ", "{:.2f}".format(len(nodes_with_image) / len(nodes_with_image_OPT)))
         # print ("Length of min_weighted_vertex_cover", len(approximation.vertex_cover.min_weighted_vertex_cover(self.graph)))

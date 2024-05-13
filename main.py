@@ -55,10 +55,21 @@ print()
 print(f"nodes with image: {hosts}")
 """
 prev_graph = None
+prev_ratio = 0.2
 pos = None
 random.seed(10)
 for step in range(20):
-    grapher = Grapher(model = model,graph_type = graph_type,activated_ratio = random.randint(20,70)/100.0,name=f"grapher_{step}",seed=random.randint(0,1000),pos = pos,graph=prev_graph)
+    grapher = Grapher(model = model,graph_type = graph_type,activated_ratio = prev_ratio,name=f"grapher_{step}",seed=step,pos = pos,graph=prev_graph)
     grapher.solve()
     pos = grapher.pos
     prev_graph = grapher.graph
+    prev_ratio += 0.05
+    prev_ratio = min(prev_ratio,1.0)
+
+for step in range(20,40):
+    grapher = Grapher(model = model,graph_type = graph_type,activated_ratio = prev_ratio,name=f"grapher_{step}",seed=step,pos = pos,graph=prev_graph)
+    grapher.solve()
+    pos = grapher.pos
+    prev_graph = grapher.graph
+    prev_ratio -= 0.05
+    prev_ratio = max(prev_ratio,0.2)

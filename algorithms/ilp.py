@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Distributed Image Placer.  If not, see https://www.gnu.org/licenses/.
 
-from pulp import LpMinimize, LpProblem, LpStatus, LpVariable, lpSum
+from pulp import LpMinimize, LpProblem, LpStatus, LpVariable, lpSum, PULP_CBC_CMD
 
 class ilp_model:
     
@@ -42,6 +42,7 @@ class ilp_model:
         return {'statusCode':self.model.status,'status':LpStatus[self.model.status],'variables':self.model.variables()}
         
     def solve(self):
+        time_limit = 500
         self.model = LpProblem(name="minVertexCover", sense=LpMinimize)
         
         activation = LpVariable.dicts("activation",(n for n in self.graph.nodes),cat='Integer',lowBound=0)
@@ -51,7 +52,7 @@ class ilp_model:
             # for tempn,d in self.graph.edges(n):
                 # self.model += transfered[(n,d)] <= self.graph.edges[n,d]['capacity']*activation[n]*5
         
-        for n in self.graph: 
+        for n in [node for node,data in self.graph.nodes(data=True) if data['activated']]: 
             self.model += lpSum([transfered[edge] for edge in self.graph.edges if edge[0] == n or edge[1] == n]) >= self.volume
         
         for edge in self.graph.edges:
@@ -64,7 +65,7 @@ class ilp_model:
             [transfered[edge]*(1/self.graph.edges[edge[0],edge[1]]['capacity']) for edge in self.graph.edges]
         )
         
-        status = self.model.solve()
+        status = self.model.solve(PULP_CBC_CMD(msg=0, timeLimit=time_limit, threads=1))
         
         print(f"status: {self.model.status}, {LpStatus[self.model.status]}")
         print(f"objective: {self.model.objective.value()}")
