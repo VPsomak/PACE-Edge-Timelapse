@@ -39,6 +39,7 @@ class Grapher():
         self.activated_ratio = kwargs.get('activated_ratio',1.0)
         self.name = kwargs.get('name','grapher')
         self.graph = kwargs.get('graph',None)
+        self.pos = kwargs.get('pos',None)
         try:
             self.model = kwargs['model']
         except:
@@ -115,9 +116,44 @@ class Grapher():
         nx.set_edge_attributes(self.graph, values=0, name='time')
         nx.set_edge_attributes(self.graph, values=0, name='numImages')
 
+    def update_continuum(self):
+        NODES = self.graph.number_of_nodes()
+        nodes_activated = np.random.choice(NODES, ceil(NODES*self.activated_ratio), replace=False)
+        nx.set_node_attributes(self.graph, values=False, name='activated')
+        nx.set_node_attributes(self.graph, values={node:True for node in nodes_activated}, name='activated')
+        nx.set_node_attributes(self.graph, values=False, name='host')
+
+        # Attributes to the graph
+        edgeCapacities = {}
+        for edge in self.graph.edges:
+            if edge[0] == edge[1]:
+                edgeCapacities[edge] = self.bandwidthlocalfile
+            elif random.random() < 0.7:
+                edgeCapacities[edge] = self.bandwidthWifi
+            else:
+                edgeCapacities[edge] = self.bandwidthEthernet
+
+        # max-min fairness
+        output = maxmin.max_min_fairness(demands=list(edgeCapacities.values()), capacity=20000000000)
+        #print("OUTPUT -- max-min fairness", output)
+        counter = 0
+        for key, value in edgeCapacities.items():
+            edgeCapacities[key] = output[counter]
+            counter = counter + 1
+        # print("Update", edgeCapacities)
+        # End of max-min fairness
+
+        nx.set_edge_attributes(self.graph, values=edgeCapacities, name='capacity')
+        nx.set_edge_attributes(self.graph, values=0, name='usage')
+        nx.set_edge_attributes(self.graph, values=0, name='time')
+        nx.set_edge_attributes(self.graph, values=0, name='numImages')
+
+
     def solve(self):
         if self.graph is None:
             self.create_continuum()
+        else:
+            self.update_continuum()
 
         nodes_activated = [node for node,data in self.graph.nodes(data=True) if data['activated']]
         hosts = [node for node,data in self.graph.nodes(data=True) if data['host']]
@@ -207,14 +243,15 @@ class Grapher():
         print(score_text)
 
         vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
-        vis.visualize_full(filename=f"graphs/{self.name}_{self.model}_{self.graph_type}_full.jpg")
+        self.pos = vis.visualize_full(filename=f"graphs/{self.name}_{self.model}_{self.graph_type}_full.jpg",pos=self.pos)
 
-        edges_to_remove = [(u, v) for u, v, d in self.graph.edges(data=True) if d['time'] == 0]
-        self.graph.remove_edges_from(edges_to_remove)
-        vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
-        vis.visualize_full(filename=f"graphs/{self.name}_{self.model}_{self.graph_type}_reduced.jpg")
+        #subgraph = self.graph.copy()
+        #edges_to_remove = [(u, v) for u, v, d in self.graph.edges(data=True) if d['time'] == 0]
+        #subgraph.remove_edges_from(edges_to_remove)
+        #vis = Visualizer(graph=subgraph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
+        #vis.visualize_full(filename=f"graphs/{self.name}_{self.model}_{self.graph_type}_reduced.jpg")
 
-        #print("Approximation Ratio: ", "{:.2f}".format(len(nodes_with_image) / len(nodes_with_image_OPT)))
+        # print("Approximation Ratio: ", "{:.2f}".format(len(nodes_with_image) / len(nodes_with_image_OPT)))
         # print ("Length of min_weighted_vertex_cover", len(approximation.vertex_cover.min_weighted_vertex_cover(self.graph)))
         # approximation_ratio = "{:.2f}".format(len(nodes_with_image) / len(approximation.vertex_cover.min_weighted_vertex_cover(self.graph)))
         # print ("Approximation Ratio: ",approximation_ratio)

@@ -40,48 +40,65 @@ class Heap():
     def size(self):
         return len(self.heap)
 
+def get_node_score(graph,node,mode='degree_full'):
+    """ Gets the score of the node in order to be used in the heap """
+    if mode == 'degree_full':
+        return graph.degree[node]
+    elif mode == 'degree_active':
+        activated_dict = dict(graph.nodes(data="activated"))
+        nodes_activated = [node for node in activated_dict if activated_dict[node]]
+        subgraph = graph.copy()
+        for edge in graph.edges():
+            if not edge[1] in nodes_activated:
+                subgraph.remove_edge(*edge)
+        return subgraph.degree[node]
 
 def build_heap(graph):
     heap = Heap()
-    degree_index = {}
+    score_index = {}
 
     data = []  # data format: [node_degree, node_index]
     for node in graph.nodes:
         node_index = node
-        degree = graph.degree[node_index]
-        degree_index[node_index] = degree
+        score_index[node_index] = get_node_score(graph,node_index,mode='degree_active')
         # multiply to -1 for desc order
-        data.append([-1 * degree, node_index])
+        data.append([-1 * score_index[node_index], node_index])
     heap.init(data)
 
-    return heap, degree_index
+    return heap, score_index
 
+def place_image(graph,node_index,heap,mvc,coverset,edges,scores):
+    adj = set(graph.edges([node_index]))
+    for u, v in adj:
+        # remove edge from list
+        edges.discard((u, v))
+        edges.discard((v, u))
+
+        # update neighbors
+        if heap.contains(v):
+            new_degree = scores[v] - 1
+            # update index
+            scores[v] = new_degree
+            # update heap
+            heap.update(v, -1 * new_degree)
+    # add node in mvc
+    mvc.add(node_index)
+    coverset.append(mvc)
 
 def minimum_vertex_cover_greedy(graph, coverset):
     mvc = set()
-
-    edges = set(graph.edges)
-    heap, degrees = build_heap(graph)
+    nodes_activated = [node for node,data in graph.nodes(data=True) if data['activated']]
+    nodes_hosting = [node for node,data in graph.nodes(data=True) if data['host']]
+    subgraph = graph.subgraph(nodes_activated)
+    heap, scores = build_heap(graph)
+    edges = set(subgraph.edges)
+    for host in nodes_hosting:
+        place_image(graph,host,heap,mvc,coverset,edges,scores)
 
     while len(edges) > 0:
         # remove node with max degree
         _, node_index = heap.pop()
-        adj = set(graph.edges([node_index]))
-        for u, v in adj:
-            # remove edge from list
-            edges.discard((u, v))
-            edges.discard((v, u))
-
-            # update neighbors
-            if heap.contains(v):
-                new_degree = degrees[v] - 1
-                # update index
-                degrees[v] = new_degree
-                # update heap
-                heap.update(v, -1 * new_degree)
-        # add node in mvc
-        mvc.add(node_index)
-        coverset.append(mvc)
+        place_image(graph,node_index,heap,mvc,coverset,edges,scores)
     return
 
 ###########################################################
