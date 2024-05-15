@@ -7,6 +7,7 @@ from heapq import heapify, heappop
 import sys
 
 class Heap():
+    """ Representation of a Heap data structure """
     # data format: [node_degree, node_index]
     heap = []
     hash = dict()
@@ -40,66 +41,78 @@ class Heap():
     def size(self):
         return len(self.heap)
 
-def get_node_score(graph,node,mode='degree_full'):
-    """ Gets the score of the node in order to be used in the heap """
-    if mode == 'degree_full':
-        return graph.degree[node]
-    elif mode == 'degree_active':
-        activated_dict = dict(graph.nodes(data="activated"))
-        nodes_activated = [node for node in activated_dict if activated_dict[node]]
-        subgraph = graph.copy()
-        for edge in graph.edges():
-            if not edge[1] in nodes_activated:
-                subgraph.remove_edge(*edge)
-        return subgraph.degree[node]
+class GreedySolver():
+    """ Representation of a greedy solver """
+    
+    def __init__(self,graph:nx.Graph,scoring:str='degree_full'):
+        self.graph = graph
+        self.nodes_activated = [node for node,data in self.graph.nodes(data=True) if data['activated']]
+        self.nodes_hosting = [node for node,data in self.graph.nodes(data=True) if data['host']]
+        self.scoring = scoring
+        self.coverset = []
+        self.edges = {}
+        self.heap:Heap = None
+        self.scores = {}
 
-def build_heap(graph):
-    heap = Heap()
-    score_index = {}
+    def get_node_score(self,node):
+        """ Gets the score of the node in order to be used in the heap """
+        if self.scoring == 'degree_full':
+            # Calculate the score based on the node degree using all edges of the node
+            return self.graph.degree[node]
+        elif self.scoring == 'degree_active':
+            # Calculate the score based on the node degree using only edges pointing to activated nodes
+            subgraph = self.graph.copy()
+            for edge in self.graph.edges():
+                if not edge[1] in self.nodes_activated:
+                    subgraph.remove_edge(*edge)
+            return subgraph.degree[node]
 
-    data = []  # data format: [node_degree, node_index]
-    for node in graph.nodes:
-        node_index = node
-        score_index[node_index] = get_node_score(graph,node_index,mode='degree_active')
-        # multiply to -1 for desc order
-        data.append([-1 * score_index[node_index], node_index])
-    heap.init(data)
+    def build_heap(self):
+        """ Creates the heap of nodes sorted by their node score """
+        self.heap = Heap()
+        self.scores = {}
 
-    return heap, score_index
+        data = []  # data format: [node_degree, node_index]
+        for node in self.graph.nodes:
+            node_index = node
+            self.scores[node_index] = self.get_node_score(node_index)
+            # multiply to -1 for desc order
+            data.append([-1 * self.scores[node_index], node_index])
+        self.heap.init(data)
 
-def place_image(graph,node_index,heap,mvc,coverset,edges,scores):
-    adj = set(graph.edges([node_index]))
-    for u, v in adj:
-        # remove edge from list
-        edges.discard((u, v))
-        edges.discard((v, u))
+    def place_image(self,node_index):
+        """ Places an image to the specified node """
+        adj = set(self.graph.edges([node_index]))
+        for u, v in adj:
+            # remove edge from list
+            self.edges.discard((u, v))
+            self.edges.discard((v, u))
 
-        # update neighbors
-        if heap.contains(v):
-            new_degree = scores[v] - 1
-            # update index
-            scores[v] = new_degree
-            # update heap
-            heap.update(v, -1 * new_degree)
-    # add node in mvc
-    mvc.add(node_index)
-    coverset.append(mvc)
+            # update neighbors
+            if self.heap.contains(v):
+                new_degree = self.scores[v] - 1
+                # update index
+                self.scores[v] = new_degree
+                # update heap
+                self.heap.update(v, -1 * new_degree)
+        # add node in mvc
+        self.mvc.add(node_index)
+        self.coverset.append(self.mvc)
 
-def minimum_vertex_cover_greedy(graph, coverset):
-    mvc = set()
-    nodes_activated = [node for node,data in graph.nodes(data=True) if data['activated']]
-    nodes_hosting = [node for node,data in graph.nodes(data=True) if data['host']]
-    subgraph = graph.subgraph(nodes_activated)
-    heap, scores = build_heap(graph)
-    edges = set(subgraph.edges)
-    for host in nodes_hosting:
-        place_image(graph,host,heap,mvc,coverset,edges,scores)
+    def minimum_vertex_cover_greedy(self):
+        """ Runs the algorithm on the provided graph """
+        self.mvc = set()
+        subgraph = self.graph.subgraph(self.nodes_activated)
+        self.build_heap()
+        self.edges = set(subgraph.edges)
+        for host in self.nodes_hosting:
+            self.place_image(host)
 
-    while len(edges) > 0:
-        # remove node with max degree
-        _, node_index = heap.pop()
-        place_image(graph,node_index,heap,mvc,coverset,edges,scores)
-    return
+        while len(self.edges) > 0:
+            # remove node with max degree
+            _, node_index = self.heap.pop()
+            self.place_image(node_index)
+        return
 
 ###########################################################
 ###########################################################

@@ -204,7 +204,9 @@ class Grapher():
         elif self.model == "greedy":
             res = []
             # greedy.minimum_vertex_cover_hybrid_greedy(self.graph, res)
-            greedy.minimum_vertex_cover_greedy(self.graph, res)
+            greedy_solver = greedy.GreedySolver(self.graph)
+            greedy_solver.minimum_vertex_cover_greedy()
+            res = greedy_solver.coverset
             nodes_with_image = res[0]
             # print(nodes_with_image)
             shortest_paths = nx.shortest_path(self.graph)
