@@ -99,7 +99,7 @@ class GreedySolver():
         self.mvc.add(node_index)
         self.coverset.append(self.mvc)
 
-    def minimum_vertex_cover_greedy(self):
+    def solve(self):
         """ Runs the algorithm on the provided graph """
         self.mvc = set()
         subgraph = self.graph.subgraph(self.nodes_activated)

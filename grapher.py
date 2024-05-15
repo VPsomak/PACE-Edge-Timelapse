@@ -41,6 +41,7 @@ class Grapher():
         self.name = kwargs.get('name','grapher')
         self.graph = kwargs.get('graph',None)
         self.pos = kwargs.get('pos',None)
+        self.shortest_paths = nx.shortest_path(self.graph) if self.graph else None
         try:
             self.model = kwargs['model']
         except:
@@ -116,6 +117,7 @@ class Grapher():
         nx.set_edge_attributes(self.graph, values=0, name='usage')
         nx.set_edge_attributes(self.graph, values=0, name='time')
         nx.set_edge_attributes(self.graph, values=0, name='numImages')
+        self.shortest_paths = nx.shortest_path(self.graph)
 
     def update_continuum(self):
         NODES = self.graph.number_of_nodes()
@@ -148,7 +150,6 @@ class Grapher():
         nx.set_edge_attributes(self.graph, values=0, name='usage')
         nx.set_edge_attributes(self.graph, values=0, name='time')
         nx.set_edge_attributes(self.graph, values=0, name='numImages')
-
 
     def solve(self):
         if self.graph is None:
@@ -187,12 +188,11 @@ class Grapher():
             approx.vertex_cover_approx(self.graph, size_, res)
             nodes_with_image = res[0]
             # print(nodes_with_image)
-            shortest_paths = nx.shortest_path(self.graph)
             nearest_image = []
             for active_node in nodes_activated:
-                nearest_image.append(min(nodes_with_image, key=lambda x: len(shortest_paths[active_node][x])))
+                nearest_image.append(min(nodes_with_image, key=lambda x: len(self.shortest_paths[active_node][x])))
             for i in range(len(nodes_activated)):
-                sp = (shortest_paths[nodes_activated[i]][nearest_image[i]])
+                sp = (self.shortest_paths[nodes_activated[i]][nearest_image[i]])
                 #print (f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
                 for j in range(len(sp) - 1):
                     self.graph[sp[j]][sp[j + 1]]['usage'] +=self.imageSize
@@ -205,16 +205,15 @@ class Grapher():
             res = []
             # greedy.minimum_vertex_cover_hybrid_greedy(self.graph, res)
             greedy_solver = greedy.GreedySolver(self.graph)
-            greedy_solver.minimum_vertex_cover_greedy()
+            greedy_solver.solve()
             res = greedy_solver.coverset
             nodes_with_image = res[0]
             # print(nodes_with_image)
-            shortest_paths = nx.shortest_path(self.graph)
             nearest_image = []
             for active_node in nodes_activated:
-                nearest_image.append(min(nodes_with_image, key=lambda x: len(shortest_paths[active_node][x])))
+                nearest_image.append(min(nodes_with_image, key=lambda x: len(self.shortest_paths[active_node][x])))
             for i in range(len(nodes_activated)):
-                sp = (shortest_paths[nodes_activated[i]][nearest_image[i]])
+                sp = (self.shortest_paths[nodes_activated[i]][nearest_image[i]])
                 # print(f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
                 for j in range(len(sp) - 1):
                     self.graph[sp[j]][sp[j + 1]]['usage'] += self.imageSize
@@ -224,8 +223,9 @@ class Grapher():
 
 
         elif self.model == "genetic":
-            res = []
-            genetic.vertex_cover_genetic(self.graph, res, self.imageSize)
+            genetic_solver = genetic.GeneticSolver(self.graph,self.imageSize)
+            genetic_solver.solve()
+            res = genetic_solver.coverset
             nodes_with_image = res[0]
             transfered = res[2]
             for edge in transfered:
