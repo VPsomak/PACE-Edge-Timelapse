@@ -18,6 +18,8 @@ class Population:
         self.vertexcovers:list[VertexCover] = []
         self.population_size = population_size
         self.graph = G.copy()
+        self.nodes_activated = [node for node,data in self.graph.nodes(data=True) if data['activated']]
+        self.nodes_hosting = [node for node,data in self.graph.nodes(data=True) if data['host']]
         self.imageSize = volume
         self.elite_population_size = elite_population_size
         self.mutation_probability = mutation_probability
@@ -309,19 +311,19 @@ class GeneticSolver():
         self.coverset = []
 
         # for plotting
-        plot_fitness = [self.population.mean_fitness]
-        plot_diversity = [self.population.mean_diversity]
+        #plot_fitness = [self.population.mean_fitness]
+        #plot_diversity = [self.population.mean_diversity]
 
         # breed and mutate this population num_iterations times
-        for iteration in range(1, self.num_iterations + 1):
+        for _ in range(1, self.num_iterations + 1):
             self.population.breed()
             self.population.mutate()
             # find the new ranks
             self.population.evaluate_fitness_ranks()
             self.population.evaluate_diversity_ranks()
             # add to the plot
-            plot_fitness.append(self.population.mean_fitness)
-            plot_diversity.append(self.population.mean_diversity)
+            #plot_fitness.append(self.population.mean_fitness)
+            #plot_diversity.append(self.population.mean_diversity)
 
         # vertex cover with best fitness is our output
         best_vertex_cover = None
