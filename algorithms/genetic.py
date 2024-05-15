@@ -2,6 +2,8 @@ import networkx as nx
 import numpy as np
 from random import randint, uniform, choice, shuffle
 
+#TODO: Reduce the number of reds
+
 # a weighted choice function
 def weighted_choice(choices, weights):
     normalized_weights = np.array([weight for weight in weights]) / np.sum(weights)
@@ -156,6 +158,10 @@ class VertexCover:
             self.chromosomenumber = 0
 
             while len(original_graph.edges) > 0:
+                #print()
+                #print(original_graph.edges)
+                #print()
+
                 # shuffle the list of vertices
                 node_list = list(original_graph.nodes)
                 shuffle(node_list)
@@ -170,35 +176,38 @@ class VertexCover:
                         adjvertex = neighbors[0]
 
                         # select the adjacent vertex
-                        self.vertexarray[adjvertex] = True
+                        if adjvertex in self.associated_population.nodes_activated:
+                            self.vertexarray[adjvertex] = True
+
+                            if vertex in self.associated_population.nodes_activated:
+                                # add a transfer on the edge just used
+                                if (vertex,adjvertex) in self.transfered:
+                                    self.transfered[(vertex,adjvertex)] += imageSize
+                                else:
+                                    self.transfered[(adjvertex,vertex)] += imageSize
 
                         # remove vertex along with neighbours from graph
                         removed_subgraph = neighbors
                         removed_subgraph.append(vertex)
                         original_graph.remove_nodes_from(removed_subgraph)
-                        
-                        # add a transfer on the edge just used
-                        if (vertex,adjvertex) in self.transfered:
-                            self.transfered[(vertex,adjvertex)] += imageSize
-                        else:
-                            self.transfered[(adjvertex,vertex)] += imageSize
-
                         break
 
                 # no more degree-1 vertices left
-                if not degree_one_vertex_found:
+                if not degree_one_vertex_found:                    
                     # randomly choose one of the remaining vertices
                     vertex = choice(list(original_graph.nodes))
                     if original_graph.degree[vertex] >= 2:
                         # make a choice depending on the chromosome bit
                         if self.chromosomes[self.chromosomenumber] == 0:
                             # add all neighbours to vertex cover
+                            activated_neighbours = []
                             for othervertex in original_graph.neighbors(vertex):
                                 self.vertexarray[othervertex] = True
-                                if (vertex,othervertex) in self.transfered:
-                                    self.transfered[(vertex,othervertex)] += imageSize
-                                else:
-                                    self.transfered[(othervertex,vertex)] += imageSize
+                                if vertex in activated_neighbours:
+                                    if (vertex,othervertex) in self.transfered:
+                                        self.transfered[(vertex,othervertex)] += imageSize
+                                    else:
+                                        self.transfered[(othervertex,vertex)] += imageSize
 
                             # remove vertex along with neighbours from graph
                             removed_subgraph = list(original_graph.neighbors(vertex))
@@ -207,9 +216,9 @@ class VertexCover:
 
                         elif self.chromosomes[self.chromosomenumber] == 1:
                             # add only this vertex to the vertex cover
-                            self.vertexarray[vertex] = True
-
-                            # remove only this vertex from the graph
+                            if vertex in self.associated_population.nodes_activated:
+                                self.vertexarray[vertex] = True
+                                # remove only this vertex from the graph
                             original_graph.remove_node(vertex)
 
                         # go to the next chromosome to be checked
@@ -220,8 +229,7 @@ class VertexCover:
             # put all true elements in a numpy array - representing the actual vertex cover
             self.vertexlist = np.where(self.vertexarray == True)[0]
             
-            node_list = list(original_graph.nodes)
-            for vertex in node_list:
+            for vertex in self.associated_population.nodes_activated:
                 if not vertex in self.vertexlist:
                     gotImage = False
                     for edge in self.transfered:
