@@ -25,7 +25,8 @@ from utils import Visualizer
 from pathlib import Path
 # import satispy
 
-class Grapher():
+class PACE():
+    """ Representation of the PACE-Edge main class """
     def __init__(self,*args,**kwargs):
         random.seed(kwargs.get('seed',10))
         numpy.random.seed(kwargs.get('seed',10))
@@ -41,8 +42,9 @@ class Grapher():
         self.activated_ratio = kwargs.get('activated_ratio',1.0)
         self.name = kwargs.get('name','grapher')
         self.graph = kwargs.get('graph',None)
-        self.pos = kwargs.get('pos',None)
+        self.pos = kwargs.get('pos',None) # Used for stabilizing the graph visualization between runs
         self.shortest_paths = nx.shortest_path(self.graph) if self.graph else None
+        self.solution_text = None # The solution text after solving
         try:
             self.model = kwargs['model']
         except:
@@ -52,9 +54,12 @@ class Grapher():
         except:
             raise Exception('Available graphs [binomial_tree, balanced_tree, star, barabasi_albert, erdos_renyi, newman_watts_strogatz]')
         
-    def get_cost(self,placement):
+    def get_cost(self):
         """ Returns the cost value by applying the cost function """
-        cost = (len(placement) * self.placementCost) + \
+        nodes_hosting = [
+            node for node,data in self.graph.nodes(data=True) if data['host']
+        ]
+        cost = (len(nodes_hosting) * self.placementCost) + \
             sum([
                 self.graph.edges[edge[0],edge[1]]['usage'] / \
                 self.graph.edges[edge[0],edge[1]]['capacity'] \
@@ -63,7 +68,7 @@ class Grapher():
         return cost
 
     def create_continuum(self,size=64, degree=3, branching_factor_of_tree=4, height_of_tree=4, knearest=7, probability=0.7):
-        # Graph creation
+        """ Creates a semi-randomized graph based on the provided parameters """
 
         if self.graph_type =="binomial_tree":
             self.graph = nx.generators.classic.binomial_tree(size)
@@ -127,6 +132,7 @@ class Grapher():
         self.shortest_paths = nx.shortest_path(self.graph)
 
     def update_continuum(self):
+        """ Updates the graph for the current timestep if a historical graph is provided """
         NODES = self.graph.number_of_nodes()
         nodes_activated = np.random.choice(NODES, ceil(NODES*self.activated_ratio), replace=False)
         nx.set_node_attributes(self.graph, values=False, name='activated')
@@ -159,6 +165,12 @@ class Grapher():
         nx.set_edge_attributes(self.graph, values=0, name='numImages')
 
     def solve(self):
+        """ 
+        Solves the problem using the provided graph and algorithm. 
+        The solution is stored in the self.graph variable using the node data 'host' value 
+        and the edge data 'time' and 'usage' values. 
+        The total cost can be accessed using the self.get_cost() method.
+        """
         if self.graph is None:
             self.create_continuum()
         else:
@@ -190,9 +202,9 @@ class Grapher():
                 print(res['status'])
                 return
         elif self.model == "approximation":
-            res = []
-            size_ = []
-            approx.vertex_cover_approx(self.graph, size_, res)
+            approx_solver = approx.ApproxSolver(self.graph)
+            approx_solver.solve()
+            res = approx_solver.coverset
             nodes_with_image = res[0]
             # print(nodes_with_image)
             nearest_image = []
@@ -206,7 +218,6 @@ class Grapher():
                     self.graph[sp[j]][sp[j + 1]]['numImages'] = round(self.graph[sp[j]][sp[j + 1]]['usage'] / self.imageSize,4)
                     self.graph[sp[j]][sp[j + 1]]['time'] = self.graph[sp[j]][sp[j + 1]]['usage'] / self.graph[sp[j]][sp[j + 1]]['capacity']
                     #print(f"Usage of channel {sp[j]} to {sp[j+1]} is {self.graph[sp[j]][sp[j + 1]]['time']*100}")
-
 
         elif self.model == "greedy":
             res = []
@@ -227,8 +238,6 @@ class Grapher():
                     self.graph[sp[j]][sp[j + 1]]['numImages'] = round(self.graph[sp[j]][sp[j + 1]]['usage'] / self.imageSize, 4)
                     self.graph[sp[j]][sp[j + 1]]['time'] = self.graph[sp[j]][sp[j + 1]]['usage'] / self.graph[sp[j]][sp[j + 1]]['capacity']
                     # print(f"Usage of channel {sp[j]} to {sp[j + 1]} is {self.graph[sp[j]][sp[j + 1]]['time'] * 100}")
-
-
         elif self.model == "genetic":
             genetic_solver = genetic.GeneticSolver(self.graph,self.imageSize)
             genetic_solver.solve()
@@ -242,28 +251,27 @@ class Grapher():
                 # print(f"Usage of channel {edge[0]} to {edge[1]} is {self.graph[edge[0]][edge[1]]['time']*100}")
         else:
             print("Give a correct model as indicated from the list\n")
-            print("Available models [ilp, approximation, bruteforce, branchandbound, genetic] \n")
+            print("Available models [ilp, approximation, genetic, greedy] \n")
             sys.exit()
 
         nx.set_node_attributes(self.graph, values={node:True for node in nodes_with_image}, name='host')
 
-        score_text = f"Execution Time: {round(time.time() - start_time,4)} seconds"
-        score_text += f"\nModel: {len(self.model)}"
-        score_text += f"\nGraph: {len(self.graph_type)}"
-        score_text += f"\nTotal nodes: {len(self.graph.nodes)}"
-        score_text += f"\nNodes with image: {len(nodes_with_image)}"
-        score_text += f"\nNodes activated: {len(nodes_activated)}"
-        score_text += f"\nCost: {round(self.get_cost(nodes_with_image),4)}"
-        print(f"\n{score_text}\n")
+        self.solution_text = f"Execution Time: {round(time.time() - start_time,4)} seconds"
+        self.solution_text += f"\nModel: {len(self.model)}"
+        self.solution_text += f"\nGraph: {len(self.graph_type)}"
+        self.solution_text += f"\nTotal nodes: {len(self.graph.nodes)}"
+        self.solution_text += f"\nNodes with image: {len(nodes_with_image)}"
+        self.solution_text += f"\nNodes activated: {len(nodes_activated)}"
+        self.solution_text += f"\nCost: {round(self.get_cost(),4)}"
 
-        vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
+        vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=self.solution_text)
         Path(f"graphs/{self.model}/reducted").mkdir(parents=True, exist_ok=True)
         self.pos = vis.visualize_full(filename=f"graphs/{self.model}/{self.name}_{self.model}_{self.graph_type}_full.jpg",pos=self.pos)
 
         subgraph = self.graph.copy()
         edges_to_remove = [(u, v) for u, v, d in self.graph.edges(data=True) if d['time'] == 0]
         subgraph.remove_edges_from(edges_to_remove)
-        vis = Visualizer(graph=subgraph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
+        vis = Visualizer(graph=subgraph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=self.solution_text)
         vis.visualize_full(filename=f"graphs/{self.model}/reducted/{self.name}_{self.model}_{self.graph_type}_reduced.jpg")
 
         # print("Approximation Ratio: ", "{:.2f}".format(len(nodes_with_image) / len(nodes_with_image_OPT)))

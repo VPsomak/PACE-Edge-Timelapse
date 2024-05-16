@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Distributed Image Placer.  If not, see https://www.gnu.org/licenses/.
 
-from grapher import Grapher
+from pace import PACE
 import sys
 import random
 
@@ -59,17 +59,19 @@ prev_ratio = 0.2
 pos = None
 random.seed(10)
 for step in range(20):
-    grapher = Grapher(model = model,graph_type = graph_type,activated_ratio = prev_ratio,name=f"grapher_{step}",seed=step,pos = pos,graph=prev_graph)
-    grapher.solve()
-    pos = grapher.pos
-    prev_graph = grapher.graph
+    pace = PACE(model = model,graph_type = graph_type,activated_ratio = prev_ratio,name=f"pace_{step}",seed=step,pos = pos,graph=prev_graph)
+    pace.solve()
+    print(f"\n{pace.solution_text}\n")
+    pos = pace.pos
+    prev_graph = pace.graph
     prev_ratio += 0.05
     prev_ratio = min(prev_ratio,1.0)
 
 for step in range(20,40):
-    grapher = Grapher(model = model,graph_type = graph_type,activated_ratio = prev_ratio,name=f"grapher_{step}",seed=step,pos = pos,graph=prev_graph)
-    grapher.solve()
-    pos = grapher.pos
-    prev_graph = grapher.graph
+    pace = PACE(model = model,graph_type = graph_type,activated_ratio = prev_ratio,name=f"pace_{step}",seed=step,pos = pos,graph=prev_graph)
+    pace.solve()
+    print(f"\n{pace.solution_text}\n")
+    pos = pace.pos
+    prev_graph = pace.graph
     prev_ratio -= 0.05
     prev_ratio = max(prev_ratio,0.2)
