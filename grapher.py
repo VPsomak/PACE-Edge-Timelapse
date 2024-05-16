@@ -247,7 +247,7 @@ class Grapher():
         score_text += f"\nNodes with image: {len(nodes_with_image)}"
         score_text += f"\nNodes activated: {len(nodes_activated)}"
         score_text += f"\nCost: {round(self.getScore(self.graph,nodes_with_image),4)}"
-        print(score_text)
+        print(f"\n{score_text}\n")
 
         vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
         Path(f"graphs/{self.model}/reducted").mkdir(parents=True, exist_ok=True)
