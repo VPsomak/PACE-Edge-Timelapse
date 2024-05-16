@@ -25,35 +25,11 @@ if len(sys.argv) == 3:
     graph_type = sys.argv[2]
 else:
     print ("Wrong number of arguments!\n")
-    print ("Example: python3 grapher.py [model] [algorithm] \n")
+    print ("Example: python3 main.py [model] [algorithm] \n")
     print ("Available models [ilp, approximation, greedy, genetic] \n")
     print ("Available graphs [binomial_tree, balanced_tree, star, barabasi_albert, erdos_renyi, newman_watts_strogatz]")
     sys.exit()
 
-"""grapher = Grapher(model = model,graph_type = graph_type,activated_ratio = 1.0,name="grapher")
-grapher.solve()
-
-nodes_activated = [node for node,data in grapher.graph.nodes(data=True) if data['activated']]
-hosts = [node for node,data in grapher.graph.nodes(data=True) if data['host']]
-
-print()
-print(f"activated nodes: {nodes_activated}")
-print()
-print(f"nodes with image: {hosts}")
-
-print('\n-----------------------\n')
-
-grapher2 = Grapher(model = model,graph_type = graph_type,activated_ratio = 1.0,graph=grapher.graph,name="grapher2")
-grapher2.solve()
-
-nodes_activated = [node for node,data in grapher2.graph.nodes(data=True) if data['activated']]
-hosts = [node for node,data in grapher2.graph.nodes(data=True) if data['host']]
-
-print()
-print(f"activated nodes: {nodes_activated}")
-print()
-print(f"nodes with image: {hosts}")
-"""
 prev_graph = None
 prev_ratio = 0.2
 pos = None
