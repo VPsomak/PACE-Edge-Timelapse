@@ -18,6 +18,8 @@ import sys
 import random
 from math import floor, ceil
 
+#TODO: Add image relocation to score ( relocating an image is more costly than keeping an image in place )
+
 model = None
 graph_type = None
 
