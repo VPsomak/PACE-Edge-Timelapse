@@ -16,9 +16,18 @@
 from pace import PACE
 import sys
 import random
+from math import floor, ceil
 
 model = None
 graph_type = None
+
+### OPTIONS ###
+random.seed(10)
+hw_fault_propability = 0.015
+activation_start_ratio = 0.2
+activation_ratio_step = 0.05
+timesteps = 40
+### END OPTIONS ###
 
 if len(sys.argv) == 3:
     model = sys.argv[1]
@@ -31,23 +40,39 @@ else:
     sys.exit()
 
 prev_graph = None
-prev_ratio = 0.2
+prev_ratio = activation_start_ratio
 pos = None
-random.seed(10)
-for step in range(20):
-    pace = PACE(model = model,graph_type = graph_type,activated_ratio = prev_ratio,name=f"pace_{step}",seed=step,pos = pos,graph=prev_graph)
+for step in range(floor(timesteps/2.0)):
+    pace = PACE(
+        model = model,
+        graph_type = graph_type,
+        activated_ratio = prev_ratio,
+        name=f"pace_{step}",
+        seed=step,pos = pos,
+        graph=prev_graph,
+        hw_fault_probability=hw_fault_propability
+    )
     pace.solve()
     print(f"\n{pace.solution_text}\n")
     pos = pace.pos
     prev_graph = pace.graph
-    prev_ratio += 0.05
+    prev_ratio += activation_ratio_step
     prev_ratio = min(prev_ratio,1.0)
 
-for step in range(20,40):
-    pace = PACE(model = model,graph_type = graph_type,activated_ratio = prev_ratio,name=f"pace_{step}",seed=step,pos = pos,graph=prev_graph)
+for step in range(floor(timesteps/2.0),timesteps):
+    pace = PACE(
+        model = model,
+        graph_type = graph_type,
+        activated_ratio = prev_ratio,
+        name=f"pace_{step}",
+        seed=step,
+        pos = pos,
+        graph=prev_graph,
+        hw_fault_probability=hw_fault_propability
+    )
     pace.solve()
     print(f"\n{pace.solution_text}\n")
     pos = pace.pos
     prev_graph = pace.graph
-    prev_ratio -= 0.05
-    prev_ratio = max(prev_ratio,0.2)
+    prev_ratio -= activation_ratio_step
+    prev_ratio = max(prev_ratio,activation_start_ratio)

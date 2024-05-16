@@ -38,6 +38,7 @@ class PACE():
         self.bandwidthWifi = kwargs.get('bandwidthWifi',25*1024*1024)
         # 524288
         self.bandwidthlocalfile = kwargs.get('bandwidthlocalfile',0.5*1024*1024)
+        self.hw_fault_probability = kwargs.get('hw_fault_probability',0.0)
         self.placementCost = self.imageSize / self.bandwidthWifi
         self.activated_ratio = kwargs.get('activated_ratio',1.0)
         self.name = kwargs.get('name','grapher')
@@ -104,6 +105,7 @@ class PACE():
         nx.set_node_attributes(self.graph, values=False, name='activated')
         nx.set_node_attributes(self.graph, values={node:True for node in nodes_activated}, name='activated')
         nx.set_node_attributes(self.graph, values=False, name='host')
+        nx.set_node_attributes(self.graph, values=False, name='offline')
 
         # Attributes to the graph
         edgeCapacities = {}
@@ -131,13 +133,42 @@ class PACE():
         nx.set_edge_attributes(self.graph, values=0, name='numImages')
         self.shortest_paths = nx.shortest_path(self.graph)
 
+    def add_hw_faults(self):
+        """ Method that emulates hardware faults by cutting of the communication (edges) of random nodes """
+        online_nodes = [node for node,data in self.graph.nodes(data=True) if not data['offline']]
+        for node in online_nodes:
+            if random.random() < self.hw_fault_probability:
+                edges = list(self.graph.edges(node))
+                nx.set_node_attributes(self.graph, values={node:True}, name='offline')
+                nx.set_node_attributes(self.graph, values={node:edges}, name='offline_edges')
+                nx.set_node_attributes(self.graph, values={node:False}, name='activated')
+                nx.set_node_attributes(self.graph, values={node:False}, name='hosted')
+                self.graph.remove_edges_from(edges)
+
+    def restore_hw_faults(self):
+        """ Method that emulates hardware restoration by restoring the communication (edges) of random offline nodes """
+        node_data_dict = dict(self.graph.nodes(data=True))
+        offline_nodes = [node for node in node_data_dict if node_data_dict[node]['offline']]
+        for node in offline_nodes:
+            if random.random() < 0.5:
+                edges = self.graph.edges(node)
+                nx.set_node_attributes(self.graph, values={node:False}, name='offline')
+                self.graph.add_edges_from(node_data_dict[node]['offline_edges'])
+                nx.set_node_attributes(self.graph, values={node:[]}, name='offline_edges')
+
     def update_continuum(self):
         """ Updates the graph for the current timestep if a historical graph is provided """
-        NODES = self.graph.number_of_nodes()
-        nodes_activated = np.random.choice(NODES, ceil(NODES*self.activated_ratio), replace=False)
+        
+        
+        self.restore_hw_faults()
+        
+        online_nodes = [node for node,data in self.graph.nodes(data=True) if not data['offline']]
+        NODES = len(online_nodes)
+        nodes_activated = np.random.choice(online_nodes, ceil(NODES*self.activated_ratio), replace=False)
         nx.set_node_attributes(self.graph, values=False, name='activated')
         nx.set_node_attributes(self.graph, values={node:True for node in nodes_activated}, name='activated')
         nx.set_node_attributes(self.graph, values=False, name='host')
+        self.add_hw_faults()
 
         # Attributes to the graph
         edgeCapacities = {}
@@ -163,6 +194,7 @@ class PACE():
         nx.set_edge_attributes(self.graph, values=0, name='usage')
         nx.set_edge_attributes(self.graph, values=0, name='time')
         nx.set_edge_attributes(self.graph, values=0, name='numImages')
+        self.shortest_paths = nx.shortest_path(self.graph)
 
     def solve(self):
         """ 
@@ -205,19 +237,29 @@ class PACE():
             approx_solver = approx.ApproxSolver(self.graph)
             approx_solver.solve()
             res = approx_solver.coverset
-            nodes_with_image = res[0]
+            nodes_with_image = []
+            if len(res) > 0:
+                nodes_with_image = res[0]
             # print(nodes_with_image)
             nearest_image = []
             for active_node in nodes_activated:
-                nearest_image.append(min(nodes_with_image, key=lambda x: len(self.shortest_paths[active_node][x])))
+                paths = []
+                for host in nodes_with_image:
+                    if host in self.shortest_paths[active_node]:
+                        paths.append(self.shortest_paths[active_node][host])
+                if len(paths) > 0:
+                    nearest_image.append(min(paths, key=lambda x: len(x)))
+                else:
+                    nearest_image.append(None)
             for i in range(len(nodes_activated)):
-                sp = (self.shortest_paths[nodes_activated[i]][nearest_image[i]])
-                #print (f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
-                for j in range(len(sp) - 1):
-                    self.graph[sp[j]][sp[j + 1]]['usage'] +=self.imageSize
-                    self.graph[sp[j]][sp[j + 1]]['numImages'] = round(self.graph[sp[j]][sp[j + 1]]['usage'] / self.imageSize,4)
-                    self.graph[sp[j]][sp[j + 1]]['time'] = self.graph[sp[j]][sp[j + 1]]['usage'] / self.graph[sp[j]][sp[j + 1]]['capacity']
-                    #print(f"Usage of channel {sp[j]} to {sp[j+1]} is {self.graph[sp[j]][sp[j + 1]]['time']*100}")
+                if nearest_image[i] is not None:
+                    sp = (nearest_image[i])
+                    # print(f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
+                    for j in range(len(sp) - 1):
+                        self.graph[sp[j]][sp[j + 1]]['usage'] += self.imageSize
+                        self.graph[sp[j]][sp[j + 1]]['numImages'] = round(self.graph[sp[j]][sp[j + 1]]['usage'] / self.imageSize, 4)
+                        self.graph[sp[j]][sp[j + 1]]['time'] = self.graph[sp[j]][sp[j + 1]]['usage'] / self.graph[sp[j]][sp[j + 1]]['capacity']
+                        # print(f"Usage of channel {sp[j]} to {sp[j + 1]} is {self.graph[sp[j]][sp[j + 1]]['time'] * 100}")
 
         elif self.model == "greedy":
             res = []
@@ -225,24 +267,36 @@ class PACE():
             greedy_solver = greedy.GreedySolver(self.graph)
             greedy_solver.solve()
             res = greedy_solver.coverset
-            nodes_with_image = res[0]
+            nodes_with_image = []
+            if len(res) > 0:
+                nodes_with_image = res[0]
             # print(nodes_with_image)
             nearest_image = []
             for active_node in nodes_activated:
-                nearest_image.append(min(nodes_with_image, key=lambda x: len(self.shortest_paths[active_node][x])))
+                paths = []
+                for host in nodes_with_image:
+                    if host in self.shortest_paths[active_node]:
+                        paths.append(self.shortest_paths[active_node][host])
+                if len(paths) > 0:
+                    nearest_image.append(min(paths, key=lambda x: len(x)))
+                else:
+                    nearest_image.append(None)
             for i in range(len(nodes_activated)):
-                sp = (self.shortest_paths[nodes_activated[i]][nearest_image[i]])
-                # print(f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
-                for j in range(len(sp) - 1):
-                    self.graph[sp[j]][sp[j + 1]]['usage'] += self.imageSize
-                    self.graph[sp[j]][sp[j + 1]]['numImages'] = round(self.graph[sp[j]][sp[j + 1]]['usage'] / self.imageSize, 4)
-                    self.graph[sp[j]][sp[j + 1]]['time'] = self.graph[sp[j]][sp[j + 1]]['usage'] / self.graph[sp[j]][sp[j + 1]]['capacity']
-                    # print(f"Usage of channel {sp[j]} to {sp[j + 1]} is {self.graph[sp[j]][sp[j + 1]]['time'] * 100}")
+                if nearest_image[i] is not None:
+                    sp = (nearest_image[i])
+                    # print(f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
+                    for j in range(len(sp) - 1):
+                        self.graph[sp[j]][sp[j + 1]]['usage'] += self.imageSize
+                        self.graph[sp[j]][sp[j + 1]]['numImages'] = round(self.graph[sp[j]][sp[j + 1]]['usage'] / self.imageSize, 4)
+                        self.graph[sp[j]][sp[j + 1]]['time'] = self.graph[sp[j]][sp[j + 1]]['usage'] / self.graph[sp[j]][sp[j + 1]]['capacity']
+                        # print(f"Usage of channel {sp[j]} to {sp[j + 1]} is {self.graph[sp[j]][sp[j + 1]]['time'] * 100}")
         elif self.model == "genetic":
             genetic_solver = genetic.GeneticSolver(self.graph,self.imageSize)
             genetic_solver.solve()
             res = genetic_solver.coverset
-            nodes_with_image = res[0]
+            nodes_with_image = []
+            if len(res) > 0:
+                nodes_with_image = res[0]
             transfered = res[2]
             for edge in transfered:
                 self.graph[edge[0]][edge[1]]['usage'] = transfered[edge]
@@ -264,14 +318,14 @@ class PACE():
         self.solution_text += f"\nNodes activated: {len(nodes_activated)}"
         self.solution_text += f"\nCost: {round(self.get_cost(),4)}"
 
-        vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=self.solution_text)
+        vis = Visualizer(graph=self.graph,title=f"Placement with {self.model} algorithm",legend=self.solution_text)
         Path(f"graphs/{self.model}/reducted").mkdir(parents=True, exist_ok=True)
         self.pos = vis.visualize_full(filename=f"graphs/{self.model}/{self.name}_{self.model}_{self.graph_type}_full.jpg",pos=self.pos)
 
         subgraph = self.graph.copy()
         edges_to_remove = [(u, v) for u, v, d in self.graph.edges(data=True) if d['time'] == 0]
         subgraph.remove_edges_from(edges_to_remove)
-        vis = Visualizer(graph=subgraph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=self.solution_text)
+        vis = Visualizer(graph=subgraph,title=f"Placement with {self.model} algorithm",legend=self.solution_text)
         vis.visualize_full(filename=f"graphs/{self.model}/reducted/{self.name}_{self.model}_{self.graph_type}_reduced.jpg")
 
         # print("Approximation Ratio: ", "{:.2f}".format(len(nodes_with_image) / len(nodes_with_image_OPT)))

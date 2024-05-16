@@ -355,8 +355,14 @@ class GeneticSolver():
             if vertex_cover.fitness > best_fitness:
                 best_vertex_cover = vertex_cover
                 best_fitness = vertex_cover.fitness
-        list_mvc = best_vertex_cover.vertexlist.tolist()
-        self.coverset.append(list_mvc)
-        self.coverset.append(best_fitness)
-        print(f"Best Fitness {best_fitness}")
-        self.coverset.append(best_vertex_cover.transfered)
+        if best_vertex_cover is not None:
+            list_mvc = best_vertex_cover.vertexlist.tolist()
+            self.coverset.append(list_mvc)
+            self.coverset.append(best_fitness)
+            print(f"Best Fitness {best_fitness}")
+            self.coverset.append(best_vertex_cover.transfered)
+        else:
+            self.coverset.append([])
+            self.coverset.append(-1)
+            print(f"Best Fitness {-1}")
+            self.coverset.append([])

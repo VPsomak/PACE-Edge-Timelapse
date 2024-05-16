@@ -13,11 +13,11 @@ class TextLegendHandler(Line2D):
 class Visualizer():
     """ Class that handles graph visualization """
 
-    def __init__(self,graph,active_nodes=[],hosts=[],layout=networkx.spring_layout,title:str = None, legend:str = None):
+    def __init__(self,graph,layout=networkx.spring_layout,title:str = None, legend:str = None):
         self.graph = graph
-        self.hosts = hosts
-        #self.active_nodes = {node for node in active_nodes if node not in hosts}
-        self.active_nodes = active_nodes
+        self.active_nodes = [node for node,data in self.graph.nodes(data=True) if data['activated']]
+        self.hosts = [node for node,data in self.graph.nodes(data=True) if data['host']]
+        self.nodes_offline = [node for node,data in self.graph.nodes(data=True) if data['offline']]
         self.layout = layout
         self.title = title
         self.legend = legend
@@ -27,6 +27,13 @@ class Visualizer():
         self.node_size = 1000
         self.linewidths = 1
         self.font_size = 15
+        """print('-----------------------------')
+        print(f"nodes_offline:{len(self.nodes_offline)}")
+        print(f"nodes_active:{len(self.active_nodes)}")
+        print(f"nodes_hosting:{len(self.hosts)}")
+        print(f"nodes_offline and hosting:{len([node for node in self.nodes_offline if node in self.hosts])}")
+        print(f"nodes_offline and active:{len([node for node in self.nodes_offline if node in self.active_nodes])}")
+        print('-----------------------------')"""
     
     def visualize_subset(self,nodes:list,filename:str = None):
         """ Visualize a subset of the graph """
@@ -74,7 +81,7 @@ class Visualizer():
             linewidths=self.linewidths, 
             font_size=self.font_size
         )
-        only_host_nodes = {node for node in self.hosts if node not in self.active_nodes}
+        only_host_nodes = {node for node in self.hosts if node not in self.active_nodes and node not in self.nodes_offline}
         if len(only_host_nodes) > 0 and len(only_host_nodes) < len(list(self.graph)):
             networkx.draw_networkx_nodes(self.graph, pos, nodelist=only_host_nodes, node_color='red', node_size=self.node_size)
         only_active_nodes = {node for node in self.active_nodes if node not in self.hosts}
@@ -83,6 +90,8 @@ class Visualizer():
         combination_nodes = {node for node in self.active_nodes if node in self.hosts}
         if len(combination_nodes) > 0:
             networkx.draw_networkx_nodes(self.graph, pos, nodelist=combination_nodes, node_color='orange', node_size=self.node_size)
+        if len(self.nodes_offline) > 0:
+            networkx.draw_networkx_nodes(self.graph, pos, nodelist=self.nodes_offline, node_color='grey', node_size=self.node_size)
         edge_labels = {(u, v): f"{round(d['time'],2)}" for u, v, d in self.graph.edges(data=True) if d['time'] > 0}
         networkx.draw_networkx_edge_labels(self.graph, pos, edge_labels=edge_labels)
         if self.legend:
