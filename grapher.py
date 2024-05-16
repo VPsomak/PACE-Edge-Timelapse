@@ -37,6 +37,7 @@ class Grapher():
         self.bandwidthWifi = kwargs.get('bandwidthWifi',25*1024*1024)
         # 524288
         self.bandwidthlocalfile = kwargs.get('bandwidthlocalfile',0.5*1024*1024)
+        self.placementCost = self.imageSize / self.bandwidthWifi
         self.activated_ratio = kwargs.get('activated_ratio',1.0)
         self.name = kwargs.get('name','grapher')
         self.graph = kwargs.get('graph',None)
@@ -51,9 +52,15 @@ class Grapher():
         except:
             raise Exception('Available graphs [binomial_tree, balanced_tree, star, barabasi_albert, erdos_renyi, newman_watts_strogatz]')
         
-    def getScore(self,graph,placement):
-        score = len(placement) + sum([graph.edges[edge[0],edge[1]]['usage']/graph.edges[edge[0],edge[1]]['capacity'] for edge in graph.edges])
-        return score
+    def get_cost(self,placement):
+        """ Returns the cost value by applying the cost function """
+        cost = (len(placement) * self.placementCost) + \
+            sum([
+                self.graph.edges[edge[0],edge[1]]['usage'] / \
+                self.graph.edges[edge[0],edge[1]]['capacity'] \
+                for edge in self.graph.edges
+            ])
+        return cost
 
     def create_continuum(self,size=64, degree=3, branching_factor_of_tree=4, height_of_tree=4, knearest=7, probability=0.7):
         # Graph creation
@@ -246,7 +253,7 @@ class Grapher():
         score_text += f"\nTotal nodes: {len(self.graph.nodes)}"
         score_text += f"\nNodes with image: {len(nodes_with_image)}"
         score_text += f"\nNodes activated: {len(nodes_activated)}"
-        score_text += f"\nCost: {round(self.getScore(self.graph,nodes_with_image),4)}"
+        score_text += f"\nCost: {round(self.get_cost(nodes_with_image),4)}"
         print(f"\n{score_text}\n")
 
         vis = Visualizer(graph=self.graph,hosts=nodes_with_image,active_nodes=nodes_activated,title=f"Placement with {self.model} algorithm",legend=score_text)
