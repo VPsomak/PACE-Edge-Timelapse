@@ -20,26 +20,7 @@ class ilp_model:
     def __init__(self,graph,volume):
         self.graph=graph
         self.volume=volume
-    
-    def solve1(self):
-        self.model = LpProblem(name="minVertexCover", sense=LpMinimize)
-        activation = LpVariable.dicts("activation",(nodeIndex for nodeIndex in range(self.graph.number_of_nodes())),cat='Binary')
-        self.model += lpSum([activation[n]*(self.volume/self.graph[n][d]['capacity']) for n in range(self.graph.number_of_nodes()) for d in range(self.graph.number_of_nodes()) if d != n and n in self.graph and d in self.graph[n]]) >= 0.001
-        self.model += lpSum([activation[n]*(self.volume/self.graph[n][d]['capacity']) for n in range(self.graph.number_of_nodes()) for d in range(self.graph.number_of_nodes()) if d != n and n in self.graph and d in self.graph[n]])
-        print(self.model)
-        print()
-        
-        status = self.model.solve()
-        print(f"status: {self.model.status}, {LpStatus[self.model.status]}")
-        print(f"objective: {self.model.objective.value()}")
-        for var in self.model.variables():
-            print(f"{var.name}: {var.value()}")
-        print()
-        for name, constraint in self.model.constraints.items():
-            print(f"{name}: {constraint.value()}")
-        print()
-        
-        return {'statusCode':self.model.status,'status':LpStatus[self.model.status],'variables':self.model.variables()}
+        self.old_hosts = [node for node,data in self.graph.nodes(data=True) if data['host']]
         
     def solve(self):
         time_limit = 500
@@ -61,19 +42,20 @@ class ilp_model:
 
         #An = activation, self.volume = V , capacity W
         self.model += lpSum(
-            [activation[n]*self.volume for n in self.graph] + 
+            [activation[n]*self.volume for n in self.graph.nodes if n not in self.old_hosts] + 
+            [activation[n]*(self.volume/4) for n in self.graph.nodes if n in self.old_hosts] + 
             [transfered[edge]*(1/self.graph.edges[edge[0],edge[1]]['capacity']) for edge in self.graph.edges]
         )
         
         status = self.model.solve(PULP_CBC_CMD(msg=0, timeLimit=time_limit, threads=1))
         
-        print(f"status: {self.model.status}, {LpStatus[self.model.status]}")
-        print(f"objective: {self.model.objective.value()}")
-        for var in self.model.variables():
-            print(f"{var.name}: {var.value()}")
-        print()
-        for name, constraint in self.model.constraints.items():
-            print(f"{name}: {constraint.value()}")
-        print()
+        #print(f"status: {self.model.status}, {LpStatus[self.model.status]}")
+        #print(f"objective: {self.model.objective.value()}")
+        #for var in self.model.variables():
+        #    print(f"{var.name}: {var.value()}")
+        #print()
+        #for name, constraint in self.model.constraints.items():
+        #    print(f"{name}: {constraint.value()}")
+        #print()
         
         return {'statusCode':self.model.status,'status':LpStatus[self.model.status],'variables':self.model.variables()}

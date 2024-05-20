@@ -17,6 +17,7 @@ from pace import PACE
 import sys
 import random
 from math import floor, ceil
+from statistics import median, stdev
 
 #TODO: Add image relocation to score ( relocating an image is more costly than keeping an image in place )
 
@@ -41,40 +42,80 @@ else:
     print ("Available graphs [binomial_tree, balanced_tree, star, barabasi_albert, erdos_renyi, newman_watts_strogatz]")
     sys.exit()
 
-prev_graph = None
-prev_ratio = activation_start_ratio
-pos = None
-for step in range(floor(timesteps/2.0)):
-    pace = PACE(
-        model = model,
-        graph_type = graph_type,
-        activated_ratio = prev_ratio,
-        name=f"pace_{step}",
-        seed=step,pos = pos,
-        graph=prev_graph,
-        hw_fault_probability=hw_fault_propability
-    )
-    pace.solve()
-    print(f"\n{pace.solution_text}\n")
-    pos = pace.pos
-    prev_graph = pace.graph
-    prev_ratio += activation_ratio_step
-    prev_ratio = min(prev_ratio,1.0)
+def process_results(results:list):
+    """ Aggregates and stores the results gathered from the experiments """
+    if len(results) > 1:
+        agregated = {key:{} for key in results[0]}
+        print('\n',results)
+        for key in agregated:
+            samples = [res[key] for res in results if res is not None]
+            agregated[key]['steps'] = len(samples)
+            agregated[key]['avg'] = sum(samples) / len(samples)
+            agregated[key]['median'] = median(samples)
+            agregated[key]['std'] = stdev(samples)
+            agregated[key]['max'] = max(samples)
+            agregated[key]['min'] = min(samples)
+        return agregated
+    else:
+        return results
 
-for step in range(floor(timesteps/2.0),timesteps):
-    pace = PACE(
-        model = model,
-        graph_type = graph_type,
-        activated_ratio = prev_ratio,
-        name=f"pace_{step}",
-        seed=step,
-        pos = pos,
-        graph=prev_graph,
-        hw_fault_probability=hw_fault_propability
-    )
-    pace.solve()
-    print(f"\n{pace.solution_text}\n")
-    pos = pace.pos
-    prev_graph = pace.graph
-    prev_ratio -= activation_ratio_step
-    prev_ratio = max(prev_ratio,activation_start_ratio)
+
+def run():
+    prev_graph = None
+    prev_ratio = activation_start_ratio
+    pos = None
+    results = []
+    for step in range(floor(timesteps/2.0)):
+        print(f"\n----------- TIMESTEP {step} -----------")
+        try:
+            pace = PACE(
+                model = model,
+                graph_type = graph_type,
+                activated_ratio = prev_ratio,
+                name=f"pace_{step}",
+                seed=step,pos = pos,
+                graph=prev_graph,
+                hw_fault_probability=hw_fault_propability
+            )
+            res = pace.solve()
+            if res is not None:
+                results.append(res)
+            print(f"{pace.solution_text}")
+        except:
+            pass
+        pos = pace.pos
+        prev_graph = pace.graph
+        prev_ratio += activation_ratio_step
+        prev_ratio = min(prev_ratio,1.0)
+
+    for step in range(floor(timesteps/2.0),timesteps):
+        print(f"\n----------- TIMESTEP {step} -----------")
+        try:
+            pace = PACE(
+                model = model,
+                graph_type = graph_type,
+                activated_ratio = prev_ratio,
+                name=f"pace_{step}",
+                seed=step,
+                pos = pos,
+                graph=prev_graph,
+                hw_fault_probability=hw_fault_propability
+            )
+            res = pace.solve()
+            if res is not None:
+                results.append(res)
+            print(f"{pace.solution_text}")
+        except:
+            pass
+        pos = pace.pos
+        prev_graph = pace.graph
+        prev_ratio -= activation_ratio_step
+        prev_ratio = max(prev_ratio,activation_start_ratio)
+    
+    aggregated_results = process_results(results)
+    print()
+    for key in aggregated_results:
+        print(f"{key}:")
+        print(f"{aggregated_results[key]}")
+
+run()

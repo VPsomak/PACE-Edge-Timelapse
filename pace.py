@@ -44,6 +44,9 @@ class PACE():
         self.name = kwargs.get('name','grapher')
         self.graph = kwargs.get('graph',None)
         self.pos = kwargs.get('pos',None) # Used for stabilizing the graph visualization between runs
+        self.previous_hosts = [
+            node for node,data in self.graph.nodes(data=True) if data['host']
+        ] if self.graph else []
         self.shortest_paths = nx.shortest_path(self.graph) if self.graph else None
         self.solution_text = None # The solution text after solving
         try:
@@ -57,10 +60,13 @@ class PACE():
         
     def get_cost(self):
         """ Returns the cost value by applying the cost function """
-        nodes_hosting = [
-            node for node,data in self.graph.nodes(data=True) if data['host']
+        preserved_hosts = [
+            node for node,data in self.graph.nodes(data=True) if data['host'] and (node in self.previous_hosts)
         ]
-        cost = (len(nodes_hosting) * self.placementCost) + \
+        new_hosts = [
+            node for node,data in self.graph.nodes(data=True) if data['host'] and (node not in self.previous_hosts)
+        ]
+        cost = (len(new_hosts) * self.placementCost) + (len(preserved_hosts) * (self.placementCost/4)) + \
             sum([
                 self.graph.edges[edge[0],edge[1]]['usage'] / \
                 self.graph.edges[edge[0],edge[1]]['capacity'] \
@@ -119,12 +125,10 @@ class PACE():
 
         # max-min fairness
         output = maxmin.max_min_fairness(demands=list(edgeCapacities.values()), capacity=20000000000)
-        #print("OUTPUT -- max-min fairness", output)
         counter = 0
         for key, value in edgeCapacities.items():
             edgeCapacities[key] = output[counter]
             counter = counter + 1
-        # print("Update", edgeCapacities)
         # End of max-min fairness
 
         nx.set_edge_attributes(self.graph, values=edgeCapacities, name='capacity')
@@ -142,7 +146,7 @@ class PACE():
                 nx.set_node_attributes(self.graph, values={node:True}, name='offline')
                 nx.set_node_attributes(self.graph, values={node:edges}, name='offline_edges')
                 nx.set_node_attributes(self.graph, values={node:False}, name='activated')
-                nx.set_node_attributes(self.graph, values={node:False}, name='hosted')
+                nx.set_node_attributes(self.graph, values={node:False}, name='host')
                 self.graph.remove_edges_from(edges)
 
     def restore_hw_faults(self):
@@ -167,7 +171,6 @@ class PACE():
         nodes_activated = np.random.choice(online_nodes, ceil(NODES*self.activated_ratio), replace=False)
         nx.set_node_attributes(self.graph, values=False, name='activated')
         nx.set_node_attributes(self.graph, values={node:True for node in nodes_activated}, name='activated')
-        nx.set_node_attributes(self.graph, values=False, name='host')
         self.add_hw_faults()
 
         # Attributes to the graph
@@ -182,12 +185,10 @@ class PACE():
 
         # max-min fairness
         output = maxmin.max_min_fairness(demands=list(edgeCapacities.values()), capacity=20000000000)
-        #print("OUTPUT -- max-min fairness", output)
         counter = 0
         for key, value in edgeCapacities.items():
             edgeCapacities[key] = output[counter]
             counter = counter + 1
-        # print("Update", edgeCapacities)
         # End of max-min fairness
 
         nx.set_edge_attributes(self.graph, values=edgeCapacities, name='capacity')
@@ -209,7 +210,6 @@ class PACE():
             self.update_continuum()
 
         nodes_activated = [node for node,data in self.graph.nodes(data=True) if data['activated']]
-        hosts = [node for node,data in self.graph.nodes(data=True) if data['host']]
 
         start_time = time.time()
 
@@ -229,7 +229,6 @@ class PACE():
                         self.graph[n][d]['usage'] = var.value()
                         self.graph[n][d]['numImages'] = round(self.graph[n][d]['usage'] / self.imageSize,4)
                         self.graph[n][d]['time'] = round(self.graph[n][d]['usage'] / self.graph[n][d]['capacity'],6) * 100
-                        # print(f"Usage of channel {n} to {d} is {self.graph[n][d]['time']*100}")
             else:
                 print(res['status'])
                 return
@@ -240,7 +239,6 @@ class PACE():
             nodes_with_image = []
             if len(res) > 0:
                 nodes_with_image = res[0]
-            # print(nodes_with_image)
             nearest_image = []
             for active_node in nodes_activated:
                 paths = []
@@ -254,12 +252,10 @@ class PACE():
             for i in range(len(nodes_activated)):
                 if nearest_image[i] is not None:
                     sp = (nearest_image[i])
-                    # print(f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
                     for j in range(len(sp) - 1):
                         self.graph[sp[j]][sp[j + 1]]['usage'] += self.imageSize
                         self.graph[sp[j]][sp[j + 1]]['numImages'] = round(self.graph[sp[j]][sp[j + 1]]['usage'] / self.imageSize, 4)
                         self.graph[sp[j]][sp[j + 1]]['time'] = self.graph[sp[j]][sp[j + 1]]['usage'] / self.graph[sp[j]][sp[j + 1]]['capacity']
-                        # print(f"Usage of channel {sp[j]} to {sp[j + 1]} is {self.graph[sp[j]][sp[j + 1]]['time'] * 100}")
 
         elif self.model == "greedy":
             res = []
@@ -270,7 +266,6 @@ class PACE():
             nodes_with_image = []
             if len(res) > 0:
                 nodes_with_image = res[0]
-            # print(nodes_with_image)
             nearest_image = []
             for active_node in nodes_activated:
                 paths = []
@@ -284,12 +279,10 @@ class PACE():
             for i in range(len(nodes_activated)):
                 if nearest_image[i] is not None:
                     sp = (nearest_image[i])
-                    # print(f"Shortest Path from {nodes_activated[i]} to {nearest_image[i]} is {sp}")
                     for j in range(len(sp) - 1):
                         self.graph[sp[j]][sp[j + 1]]['usage'] += self.imageSize
                         self.graph[sp[j]][sp[j + 1]]['numImages'] = round(self.graph[sp[j]][sp[j + 1]]['usage'] / self.imageSize, 4)
                         self.graph[sp[j]][sp[j + 1]]['time'] = self.graph[sp[j]][sp[j + 1]]['usage'] / self.graph[sp[j]][sp[j + 1]]['capacity']
-                        # print(f"Usage of channel {sp[j]} to {sp[j + 1]} is {self.graph[sp[j]][sp[j + 1]]['time'] * 100}")
         elif self.model == "genetic":
             genetic_solver = genetic.GeneticSolver(self.graph,self.imageSize)
             genetic_solver.solve()
@@ -302,18 +295,22 @@ class PACE():
                 self.graph[edge[0]][edge[1]]['usage'] = transfered[edge]
                 self.graph[edge[0]][edge[1]]['numImages'] = round(self.graph[edge[0]][edge[1]]['usage'] / self.imageSize,4)
                 self.graph[edge[0]][edge[1]]['time'] = round(self.graph[edge[0]][edge[1]]['usage'] / self.graph[edge[0]][edge[1]]['capacity'],6) * 100
-                # print(f"Usage of channel {edge[0]} to {edge[1]} is {self.graph[edge[0]][edge[1]]['time']*100}")
         else:
             print("Give a correct model as indicated from the list\n")
             print("Available models [ilp, approximation, genetic, greedy] \n")
             sys.exit()
 
+        nx.set_node_attributes(self.graph, values=False, name='host')
         nx.set_node_attributes(self.graph, values={node:True for node in nodes_with_image}, name='host')
+        online_nodes = [node for node,data in self.graph.nodes(data=True) if not data['offline']]
+        offline_nodes = [node for node,data in self.graph.nodes(data=True) if data['offline']]
 
         self.solution_text = f"Execution Time: {round(time.time() - start_time,4)} seconds"
         self.solution_text += f"\nModel: {len(self.model)}"
         self.solution_text += f"\nGraph: {len(self.graph_type)}"
         self.solution_text += f"\nTotal nodes: {len(self.graph.nodes)}"
+        self.solution_text += f"\nOnline nodes: {len(online_nodes)}"
+        self.solution_text += f"\nOffline nodes: {len(offline_nodes)}"
         self.solution_text += f"\nNodes with image: {len(nodes_with_image)}"
         self.solution_text += f"\nNodes activated: {len(nodes_activated)}"
         self.solution_text += f"\nCost: {round(self.get_cost(),4)}"
@@ -328,7 +325,13 @@ class PACE():
         vis = Visualizer(graph=subgraph,title=f"Placement with {self.model} algorithm",legend=self.solution_text)
         vis.visualize_full(filename=f"graphs/{self.model}/reducted/{self.name}_{self.model}_{self.graph_type}_reduced.jpg")
 
-        # print("Approximation Ratio: ", "{:.2f}".format(len(nodes_with_image) / len(nodes_with_image_OPT)))
-        # print ("Length of min_weighted_vertex_cover", len(approximation.vertex_cover.min_weighted_vertex_cover(self.graph)))
-        # approximation_ratio = "{:.2f}".format(len(nodes_with_image) / len(approximation.vertex_cover.min_weighted_vertex_cover(self.graph)))
-        # print ("Approximation Ratio: ",approximation_ratio)
+
+        return {
+            'time':round(time.time() - start_time,4),
+            'nodes':len(self.graph.nodes),
+            'online_nodes':len(online_nodes),
+            'offline_nodes':len(offline_nodes),
+            'hosts':len(nodes_with_image),
+            'activated':len(nodes_activated),
+            'cost':round(self.get_cost(),4)
+        }

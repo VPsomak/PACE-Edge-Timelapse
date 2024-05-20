@@ -19,7 +19,7 @@ class Population:
         self.population_size = population_size
         self.graph = G.copy()
         self.nodes_activated = [node for node,data in self.graph.nodes(data=True) if data['activated']]
-        self.nodes_hosting = [node for node,data in self.graph.nodes(data=True) if data['host']]
+        self.old_hosts = [node for node,data in self.graph.nodes(data=True) if data['host']]
         self.imageSize = volume
         self.elite_population_size = elite_population_size
         self.mutation_probability = mutation_probability
@@ -245,8 +245,10 @@ class VertexCover:
             if len(request_failed_nodes) > 0:
                 self.fitness = 0.0
             else:
-                hostonly = [vertex for vertex in self.vertexlist if vertex not in self.associated_population.nodes_activated]
-                mixed = [vertex for vertex in self.vertexlist if vertex in self.associated_population.nodes_activated]
+                preserved_hosts = [vertex for vertex in self.vertexlist if vertex in self.associated_population.old_hosts]
+                newhosts = [vertex for vertex in self.vertexlist if vertex not in self.associated_population.old_hosts]
+                hostonly = [vertex for vertex in newhosts if vertex not in self.associated_population.nodes_activated]
+                mixed = [vertex for vertex in newhosts if vertex in self.associated_population.nodes_activated]
                 total_transfer_time = sum([self.transfered[edge]/self.associated_population.graph.edges[edge[0],edge[1]]['capacity'] for edge in self.associated_population.graph.edges])
                 unused_hosts = []
                 for host in hostonly:
@@ -255,7 +257,8 @@ class VertexCover:
                         unused_hosts.append(host)
                 score = total_transfer_time + \
                     (len(unused_hosts) * (image_placement_cost * 4)) + \
-                    (len(mixed) * (image_placement_cost))
+                    (len(mixed) * (image_placement_cost)) + \
+                    (len(preserved_hosts) * (image_placement_cost / 4))
                 if score == 0:
                     self.fitness = 1.0
                 else:
