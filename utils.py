@@ -1,15 +1,18 @@
 import networkx
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.legend_handler import HandlerBase
 
-class TextLegendHandler(Line2D):
-    def __init__(self, text, *args, **kwargs):
-        super().__init__([], [], *args, **kwargs)
+class TextLegendHandler(HandlerBase):
+    def __init__(self, text, fontsize, *args, **kwargs):
         self.text = text
+        self.fontsize = fontsize
+        super().__init__(*args, **kwargs)
 
-    def get_label(self):
-        return self.text
-
+    def create_artists(self, legend, orig_handle, xdescent, ydescent, width, height, fontsize, trans):
+        txt = plt.Text(xdescent + width / 2, ydescent + height / 2, self.text,
+                       fontsize=self.fontsize, ha="left", va="bottom", transform=trans)
+        return [txt]
 class Visualizer():
     """ Class that handles graph visualization """
 
@@ -50,15 +53,23 @@ class Visualizer():
             linewidths=self.linewidths, 
             font_size=self.font_size
         )
-        intersecting = [value for value in nodes if value in self.hosts]
-        if len(intersecting) > 0 and len(intersecting) < len(nodes):
-            networkx.draw_networkx_nodes(subgraph, pos, nodelist=intersecting, node_color='red', node_size=self.node_size)
-        intersecting = [value for value in nodes if value in self.active_nodes]
-        if len(intersecting) > 0:
-            networkx.draw_networkx_nodes(subgraph, pos, nodelist=intersecting, node_color='green', node_size=self.node_size)
+        only_host_nodes = {node for node in self.hosts if node not in self.active_nodes and node not in self.nodes_offline}
+        if len(only_host_nodes) > 0 and len(only_host_nodes) < len(list(self.graph)):
+            networkx.draw_networkx_nodes(self.graph, pos, nodelist=only_host_nodes, node_color='red', node_size=self.node_size)
+        only_active_nodes = {node for node in self.active_nodes if node not in self.hosts}
+        if len(only_active_nodes) > 0:
+            networkx.draw_networkx_nodes(self.graph, pos, nodelist=only_active_nodes, node_color='green', node_size=self.node_size)
+        combination_nodes = {node for node in self.active_nodes if node in self.hosts}
+        if len(combination_nodes) > 0:
+            networkx.draw_networkx_nodes(self.graph, pos, nodelist=combination_nodes, node_color='orange', node_size=self.node_size)
+        if len(self.nodes_offline) > 0:
+            networkx.draw_networkx_nodes(self.graph, pos, nodelist=self.nodes_offline, node_color='grey', node_size=self.node_size)
+        edge_labels = {(u, v): f"{round(d['time'],2)}" for u, v, d in self.graph.edges(data=True) if d['time'] > 0}
+        networkx.draw_networkx_edge_labels(self.graph, pos, edge_labels=edge_labels)
         if self.legend:
-            legend_elements = [TextLegendHandler(self.legend)]
-            plt.legend(handles=legend_elements,loc='lower right')
+            legend_elements = [plt.Line2D([0], [0], linestyle="none")]  # Placeholder for the custom handler
+            plt.legend(handles=legend_elements, bbox_to_anchor=(0.88, 0.02), loc='lower right', handler_map={legend_elements[0]: TextLegendHandler(self.legend, fontsize=20, )})
+            plt.subplots_adjust(right=0.75)
         if self.title:
             plt.title(self.title)
         if filename:
@@ -95,8 +106,9 @@ class Visualizer():
         edge_labels = {(u, v): f"{round(d['time'],2)}" for u, v, d in self.graph.edges(data=True) if d['time'] > 0}
         networkx.draw_networkx_edge_labels(self.graph, pos, edge_labels=edge_labels)
         if self.legend:
-            legend_elements = [TextLegendHandler(self.legend)]
-            plt.legend(handles=legend_elements,loc='lower right')
+            legend_elements = [plt.Line2D([0], [0], linestyle="none")]  # Placeholder for the custom handler
+            plt.legend(handles=legend_elements, bbox_to_anchor=(0.88, 0.02), loc='lower right', handler_map={legend_elements[0]: TextLegendHandler(self.legend, fontsize=20, )})
+            plt.subplots_adjust(right=0.75)
         if self.title:
             plt.title(self.title)
         if filename:
