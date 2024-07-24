@@ -73,6 +73,28 @@ class PACE():
                 for edge in self.graph.edges
             ])
         return cost
+    
+    def update_traffic(self,nodes_activated,nodes_with_image):
+        nearest_image = []
+        for active_node in nodes_activated:
+            if active_node not in nodes_with_image:
+                paths = []
+                for host in nodes_with_image:
+                    if host in self.shortest_paths[active_node]:
+                        paths.append(self.shortest_paths[active_node][host])
+                if len(paths) > 0:
+                    nearest_image.append(min(paths, key=lambda x: len(x)))
+                else:
+                    nearest_image.append(None)
+            else:
+                nearest_image.append(None)
+        for i in range(len(nodes_activated)):
+            if nearest_image[i] is not None:
+                sp = (nearest_image[i])
+                for j in range(len(sp) - 1):
+                    self.graph[sp[j]][sp[j + 1]]['usage'] += self.imageSize
+                    self.graph[sp[j]][sp[j + 1]]['numImages'] = round(self.graph[sp[j]][sp[j + 1]]['usage'] / self.imageSize, 4)
+                    self.graph[sp[j]][sp[j + 1]]['time'] = self.graph[sp[j]][sp[j + 1]]['usage'] / self.graph[sp[j]][sp[j + 1]]['capacity']
 
     def create_continuum(self,size=64, degree=3, branching_factor_of_tree=4, height_of_tree=4, knearest=7, probability=0.7):
         """ Creates a semi-randomized graph based on the provided parameters """
@@ -95,7 +117,7 @@ class PACE():
             # erdos_renyi_graph(n, p, seed=None, directed=False)
             # n: Number of nodes
             # p: Probability of edge creation
-            self.graph = nx.erdos_renyi_graph(size, probability, seed=None, directed=False)
+            self.graph = nx.erdos_renyi_graph(size, 0.45, seed=None, directed=False)
         elif self.graph_type =="newman_watts_strogatz":
             # n: The number of nodes.
             # k: Each node is joined with its k nearest neighbors in a ring topology.
@@ -212,93 +234,35 @@ class PACE():
         nodes_activated = [node for node,data in self.graph.nodes(data=True) if data['activated']]
 
         start_time = time.time()
+        mode = 1
+        model = self.model
+        try:
+            mode = int(self.model[-1])
+            model = self.model[:-1]
+        except:
+            pass
 
-        if self.model == "ilp":
-            ilpModel = ilp.ilp_model(self.graph,self.imageSize)
-            res = ilpModel.solve()
-            if res['statusCode'] == 1:
-                nodes_with_image = []
-                for var in res['variables']:
-                    if 'activation' in var.name:
-                        if var.value() > 0:
-                            nodes_with_image.append(int(var.name.split('_')[1]))
-                    else:
-                        nodes = var.name.split('_')[1]+var.name.split('_')[2]
-                        n = int(nodes.split(',')[0].replace('(',''))
-                        d = int(nodes.split(',')[1].replace(')',''))
-                        self.graph[n][d]['usage'] = var.value()
-                        self.graph[n][d]['numImages'] = round(self.graph[n][d]['usage'] / self.imageSize,4)
-                        self.graph[n][d]['time'] = round(self.graph[n][d]['usage'] / self.graph[n][d]['capacity'],6) * 100
-            else:
-                print(res['status'])
-                return
-        elif self.model == "approximation":
-            approx_solver = approx.ApproxSolver(self.graph)
-            approx_solver.solve()
-            res = approx_solver.coverset
-            nodes_with_image = []
-            if len(res) > 0:
-                nodes_with_image = res[0]
-            nearest_image = []
-            for active_node in nodes_activated:
-                paths = []
-                for host in nodes_with_image:
-                    if host in self.shortest_paths[active_node]:
-                        paths.append(self.shortest_paths[active_node][host])
-                if len(paths) > 0:
-                    nearest_image.append(min(paths, key=lambda x: len(x)))
-                else:
-                    nearest_image.append(None)
-            for i in range(len(nodes_activated)):
-                if nearest_image[i] is not None:
-                    sp = (nearest_image[i])
-                    for j in range(len(sp) - 1):
-                        self.graph[sp[j]][sp[j + 1]]['usage'] += self.imageSize
-                        self.graph[sp[j]][sp[j + 1]]['numImages'] = round(self.graph[sp[j]][sp[j + 1]]['usage'] / self.imageSize, 4)
-                        self.graph[sp[j]][sp[j + 1]]['time'] = self.graph[sp[j]][sp[j + 1]]['usage'] / self.graph[sp[j]][sp[j + 1]]['capacity']
-
-        elif self.model == "greedy":
-            res = []
-            # greedy.minimum_vertex_cover_hybrid_greedy(self.graph, res)
-            greedy_solver = greedy.GreedySolver(self.graph)
-            greedy_solver.solve()
-            res = greedy_solver.coverset
-            nodes_with_image = []
-            if len(res) > 0:
-                nodes_with_image = res[0]
-            nearest_image = []
-            for active_node in nodes_activated:
-                paths = []
-                for host in nodes_with_image:
-                    if host in self.shortest_paths[active_node]:
-                        paths.append(self.shortest_paths[active_node][host])
-                if len(paths) > 0:
-                    nearest_image.append(min(paths, key=lambda x: len(x)))
-                else:
-                    nearest_image.append(None)
-            for i in range(len(nodes_activated)):
-                if nearest_image[i] is not None:
-                    sp = (nearest_image[i])
-                    for j in range(len(sp) - 1):
-                        self.graph[sp[j]][sp[j + 1]]['usage'] += self.imageSize
-                        self.graph[sp[j]][sp[j + 1]]['numImages'] = round(self.graph[sp[j]][sp[j + 1]]['usage'] / self.imageSize, 4)
-                        self.graph[sp[j]][sp[j + 1]]['time'] = self.graph[sp[j]][sp[j + 1]]['usage'] / self.graph[sp[j]][sp[j + 1]]['capacity']
-        elif self.model == "genetic":
-            genetic_solver = genetic.GeneticSolver(self.graph,self.imageSize)
-            genetic_solver.solve()
-            res = genetic_solver.coverset
-            nodes_with_image = []
-            if len(res) > 0:
-                nodes_with_image = res[0]
-            transfered = res[2]
-            for edge in transfered:
-                self.graph[edge[0]][edge[1]]['usage'] = transfered[edge]
-                self.graph[edge[0]][edge[1]]['numImages'] = round(self.graph[edge[0]][edge[1]]['usage'] / self.imageSize,4)
-                self.graph[edge[0]][edge[1]]['time'] = round(self.graph[edge[0]][edge[1]]['usage'] / self.graph[edge[0]][edge[1]]['capacity'],6) * 100
+        solver = None
+        if model == "ilp":
+            solver = ilp.ilp_model(self.graph,self.imageSize,self.placementCost)
+        elif model == "approximation":
+            solver = approx.ApproxSolver(self.graph)
+        elif model == "greedy":
+            solver = greedy.GreedySolver(self.graph)
+        elif model == "genetic":
+            solver = genetic.GeneticSolver(self.graph,self.imageSize)
         else:
             print("Give a correct model as indicated from the list\n")
             print("Available models [ilp, approximation, genetic, greedy] \n")
             sys.exit()
+
+        solver.solve(mode)
+        end_time = time.time()
+        res = solver.coverset
+        nodes_with_image = []
+        if len(res) > 0:
+            nodes_with_image = res[0]
+        self.update_traffic(nodes_activated,nodes_with_image)
 
         nx.set_node_attributes(self.graph, values=False, name='host')
         nx.set_node_attributes(self.graph, values={node:True for node in nodes_with_image}, name='host')
@@ -315,19 +279,20 @@ class PACE():
         self.solution_text += f"\nNodes activated: {len(nodes_activated)}"
         self.solution_text += f"\nCost: {round(self.get_cost(),4)}"
 
+
         vis = Visualizer(graph=self.graph,title=f"Placement with {self.model} algorithm",legend=self.solution_text)
-        Path(f"graphs/{self.model}/reducted").mkdir(parents=True, exist_ok=True)
-        self.pos = vis.visualize_full(filename=f"graphs/{self.model}/{self.name}_{self.model}_{self.graph_type}_full.jpg",pos=self.pos)
+        Path(f"graphs/{self.model}/{self.graph_type}/reducted").mkdir(parents=True, exist_ok=True)
+        self.pos = vis.visualize_full(filename=f"graphs/{self.model}/{self.graph_type}/{self.name}_{self.model}_{self.graph_type}_full.jpg",pos=self.pos)
 
         subgraph = self.graph.copy()
         edges_to_remove = [(u, v) for u, v, d in self.graph.edges(data=True) if d['time'] == 0]
         subgraph.remove_edges_from(edges_to_remove)
         vis = Visualizer(graph=subgraph,title=f"Placement with {self.model} algorithm",legend=self.solution_text)
-        vis.visualize_full(filename=f"graphs/{self.model}/reducted/{self.name}_{self.model}_{self.graph_type}_reduced.jpg")
+        vis.visualize_full(filename=f"graphs/{self.model}/{self.graph_type}/reducted/{self.name}_{self.model}_{self.graph_type}_reduced.jpg")
 
 
         return {
-            'time':round(time.time() - start_time,4),
+            'time':round(end_time - start_time,4),
             'nodes':len(self.graph.nodes),
             'online_nodes':len(online_nodes),
             'offline_nodes':len(offline_nodes),

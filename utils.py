@@ -124,3 +124,12 @@ class Visualizer():
     def visualize_hosts(self,filename:str = None):
         """ Visualize the active nodes only """
         return self.visualize_subset(self.hosts+self.active_nodes)
+    
+def paint_chart(x:list,y:list,label_x:str,label_y:str,title:str,filepath:str,**kwargs):
+    plt.figure(figsize=(19.2, 10.8))
+    plt.plot(x, y, **kwargs)
+    plt.xlabel(label_x)
+    plt.ylabel(label_y)
+    plt.title(title)
+    plt.savefig(filepath)
+    plt.close()

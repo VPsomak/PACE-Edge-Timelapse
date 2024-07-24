@@ -18,8 +18,8 @@ import sys
 import random
 from math import floor, ceil
 from statistics import median, stdev
-
-#TODO: Add image relocation to score ( relocating an image is more costly than keeping an image in place )
+from utils import paint_chart
+import pandas
 
 model = None
 graph_type = None
@@ -32,7 +32,7 @@ activation_ratio_step = 0.05
 timesteps = 40
 ### END OPTIONS ###
 
-if len(sys.argv) == 3:
+if len(sys.argv) >= 3:
     model = sys.argv[1]
     graph_type = sys.argv[2]
 else:
@@ -45,8 +45,9 @@ else:
 def process_results(results:list):
     """ Aggregates and stores the results gathered from the experiments """
     if len(results) > 1:
+        res_dataframe = pandas.DataFrame.from_records(results)
+        res_dataframe.to_csv(f"graphs/results_{model}_{graph_type}.csv",sep=';',decimal=',',encoding="utf8")
         agregated = {key:{} for key in results[0]}
-        print('\n',results)
         for key in agregated:
             samples = [res[key] for res in results if res is not None]
             agregated[key]['steps'] = len(samples)
@@ -59,8 +60,26 @@ def process_results(results:list):
     else:
         return results
 
-
+def run_timestep(pace:PACE,tries=0):
+    try:
+        return pace.solve()
+    except Exception as ex:
+        tries += 1
+        if tries < 5:
+            return run_timestep(pace,tries)
+        else:
+            print(f"!!!! {ex} !!!!")
+            return {
+                'time':0,
+                'nodes':len(pace.graph.nodes),
+                'online_nodes':len([node for node,data in pace.graph.nodes(data=True) if not data['activated']]),
+                'offline_nodes':len([node for node,data in pace.graph.nodes(data=True) if data['offline']]),
+                'hosts':0,
+                'activated':len([node for node,data in pace.graph.nodes(data=True) if data['activated']]),
+                'cost':0
+            }
 def run():
+    activated_nodes = []
     prev_graph = None
     prev_ratio = activation_start_ratio
     pos = None
@@ -77,12 +96,22 @@ def run():
                 graph=prev_graph,
                 hw_fault_probability=hw_fault_propability
             )
-            res = pace.solve()
-            if res is not None:
-                results.append(res)
-            print(f"{pace.solution_text}")
-        except:
-            pass
+            res = run_timestep(pace)
+        except Exception as ex:
+            print(ex)
+            res = {
+                'time':0,
+                'nodes':len(pace.graph.nodes),
+                'online_nodes':len([node for node,data in pace.graph.nodes(data=True) if not data['activated']]),
+                'offline_nodes':len([node for node,data in pace.graph.nodes(data=True) if data['offline']]),
+                'hosts':0,
+                'activated':len([node for node,data in pace.graph.nodes(data=True) if data['activated']]),
+                'cost':0
+            }
+        activated_nodes.append(len([node for node,data in pace.graph.nodes(data=True) if data['activated']]))
+        if res is not None:
+            results.append(res)
+        print(f"{pace.solution_text}")
         pos = pace.pos
         prev_graph = pace.graph
         prev_ratio += activation_ratio_step
@@ -101,17 +130,28 @@ def run():
                 graph=prev_graph,
                 hw_fault_probability=hw_fault_propability
             )
-            res = pace.solve()
-            if res is not None:
-                results.append(res)
-            print(f"{pace.solution_text}")
-        except:
-            pass
+            res = run_timestep(pace)
+        except Exception as ex:
+            res = {
+                'time':0,
+                'nodes':len(pace.graph.nodes),
+                'online_nodes':len([node for node,data in pace.graph.nodes(data=True) if not data['activated']]),
+                'offline_nodes':len([node for node,data in pace.graph.nodes(data=True) if data['offline']]),
+                'hosts':0,
+                'activated':len([node for node,data in pace.graph.nodes(data=True) if data['activated']]),
+                'cost':0
+            }
+            print(ex)
+        activated_nodes.append(len([node for node,data in pace.graph.nodes(data=True) if data['activated']]))
+        if res is not None:
+            results.append(res)
+        print(f"{pace.solution_text}")
         pos = pace.pos
         prev_graph = pace.graph
         prev_ratio -= activation_ratio_step
         prev_ratio = max(prev_ratio,activation_start_ratio)
     
+    #paint_chart(range(1,41),activated_nodes,'timestep','nodes requesting image','Distribution of nodes requesting image','node_request_distribution.png')
     aggregated_results = process_results(results)
     print()
     for key in aggregated_results:

@@ -23,6 +23,7 @@ class Population:
         self.imageSize = volume
         self.elite_population_size = elite_population_size
         self.mutation_probability = mutation_probability
+        self.mode = 2
 
         for vertex_cover_number in range(self.population_size):
             vertex_cover = VertexCover(self)
@@ -245,6 +246,9 @@ class VertexCover:
             if len(request_failed_nodes) > 0:
                 self.fitness = 0.0
             else:
+                # Disable old_hosts if mode is 1, meaning that host preservation should not be considered
+                if self.associated_population.mode == 1:
+                    self.associated_population.old_hosts = []
                 preserved_hosts = [vertex for vertex in self.vertexlist if vertex in self.associated_population.old_hosts]
                 newhosts = [vertex for vertex in self.vertexlist if vertex not in self.associated_population.old_hosts]
                 hostonly = [vertex for vertex in newhosts if vertex not in self.associated_population.nodes_activated]
@@ -332,8 +336,10 @@ class GeneticSolver():
         self.population.evaluate_diversity_ranks()
         self.coverset = []
 
-    def solve(self):
+    def solve(self,mode):
         """ Runs the solver """
+        # Mode=1 means that host preservation should not be considered
+        self.population.mode = mode
         self.coverset = []
 
         # for plotting

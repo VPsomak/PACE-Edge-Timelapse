@@ -67,7 +67,7 @@ class GreedySolver():
                     subgraph.remove_edge(*edge)
             return subgraph.degree[node]
 
-    def build_heap(self):
+    def build_heap(self,mode):
         """ Creates the heap of nodes sorted by their node score """
         self.heap = Heap()
         self.scores = {}
@@ -75,10 +75,11 @@ class GreedySolver():
         data = []  # data format: [node_degree, node_index]
         for node in self.graph.nodes:
             node_index = node
-            #host_preservation_weight = 1
-            #if node_index in self.nodes_hosting:
-            #    host_preservation_weight = 2
-            self.scores[node_index] = self.get_node_score(node_index)#*host_preservation_weight
+            host_preservation_weight = 1
+            # Mode = 2 means that host preservation should be considered
+            if node_index in self.nodes_hosting and mode == 2:
+               host_preservation_weight = 2
+            self.scores[node_index] = self.get_node_score(node_index)*host_preservation_weight
             # multiply to -1 for desc order
             data.append([-1 * self.scores[node_index], node_index])
         self.heap.init(data)
@@ -102,11 +103,11 @@ class GreedySolver():
         self.mvc.add(node_index)
         self.coverset.append(self.mvc)
 
-    def solve(self):
+    def solve(self,mode):
         """ Runs the algorithm on the provided graph """
         self.mvc = set()
         subgraph = self.graph.subgraph(self.nodes_activated)
-        self.build_heap()
+        self.build_heap(mode)
         self.edges = set(subgraph.edges)
         for host in self.nodes_hosting:
             self.place_image(host)

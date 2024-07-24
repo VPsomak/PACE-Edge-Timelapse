@@ -17,21 +17,23 @@ from pulp import LpMinimize, LpProblem, LpStatus, LpVariable, lpSum, PULP_CBC_CM
 
 class ilp_model:
     
-    def __init__(self,graph,volume):
+    def __init__(self,graph,volume,placementCost):
         self.graph=graph
         self.volume=volume
+        self.placementCost = placementCost
         self.old_hosts = [node for node,data in self.graph.nodes(data=True) if data['host']]
+        self.coverset = []
         
-    def solve(self):
+    def solve(self,mode):
+        # Disable old hosts if mode is 1
+        if mode == 1:
+            self.old_hosts = []
         time_limit = 500
+        self.coverset = []
         self.model = LpProblem(name="minVertexCover", sense=LpMinimize)
         
         activation = LpVariable.dicts("activation",(n for n in self.graph.nodes),cat='Integer',lowBound=0)
         transfered = LpVariable.dicts("transfered",(edge for edge in self.graph.edges),cat='Integer',lowBound=0)
-                
-        # for n in self.graph: 
-            # for tempn,d in self.graph.edges(n):
-                # self.model += transfered[(n,d)] <= self.graph.edges[n,d]['capacity']*activation[n]*5
         
         for n in [node for node,data in self.graph.nodes(data=True) if data['activated']]: 
             self.model += lpSum([transfered[edge] for edge in self.graph.edges if edge[0] == n or edge[1] == n]) >= self.volume
@@ -42,12 +44,12 @@ class ilp_model:
 
         #An = activation, self.volume = V , capacity W
         self.model += lpSum(
-            [activation[n]*self.volume for n in self.graph.nodes if n not in self.old_hosts] + 
-            [activation[n]*(self.volume/4) for n in self.graph.nodes if n in self.old_hosts] + 
+            [activation[n]*self.placementCost for n in self.graph.nodes if n not in self.old_hosts] + 
+            [activation[n]*(self.placementCost/4) for n in self.graph.nodes if n in self.old_hosts] + 
             [transfered[edge]*(1/self.graph.edges[edge[0],edge[1]]['capacity']) for edge in self.graph.edges]
         )
         
-        status = self.model.solve(PULP_CBC_CMD(msg=0, timeLimit=time_limit, threads=1))
+        self.model.solve(PULP_CBC_CMD(msg=0, timeLimit=time_limit, threads=4))
         
         #print(f"status: {self.model.status}, {LpStatus[self.model.status]}")
         #print(f"objective: {self.model.objective.value()}")
@@ -57,5 +59,16 @@ class ilp_model:
         #for name, constraint in self.model.constraints.items():
         #    print(f"{name}: {constraint.value()}")
         #print()
+
+        nodes_with_image = []
+        variables = self.model.variables()
+        status_code = self.model.status
+        if status_code == 1:
+            for var in variables:
+                if 'activation' in var.name:
+                    if var.value() > 0:
+                        nodes_with_image.append(int(var.name.split('_')[1]))
+        else:
+            print(f"!!! {LpStatus[self.model.status]} !!!")
         
-        return {'statusCode':self.model.status,'status':LpStatus[self.model.status],'variables':self.model.variables()}
+        self.coverset = [nodes_with_image,self.model.status,LpStatus[self.model.status],self.model.variables()]

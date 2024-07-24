@@ -13,7 +13,7 @@ class ApproxSolver():
             node for node,data in self.graph.nodes(data=True) if data['host']
         ]
 
-    def solve(self):
+    def solve(self,mode):
         """ Run the solver on the provided graph """
         subgraph = self.graph.copy()
         for edge in self.graph.edges():
