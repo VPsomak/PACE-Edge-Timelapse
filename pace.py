@@ -270,8 +270,8 @@ class PACE():
         offline_nodes = [node for node,data in self.graph.nodes(data=True) if data['offline']]
 
         self.solution_text = f"Execution Time: {round(time.time() - start_time,4)} seconds"
-        self.solution_text += f"\nModel: {len(self.model)}"
-        self.solution_text += f"\nGraph: {len(self.graph_type)}"
+        self.solution_text += f"\nModel: {self.model}"
+        self.solution_text += f"\nGraph: {self.graph_type}"
         self.solution_text += f"\nTotal nodes: {len(self.graph.nodes)}"
         self.solution_text += f"\nOnline nodes: {len(online_nodes)}"
         self.solution_text += f"\nOffline nodes: {len(offline_nodes)}"

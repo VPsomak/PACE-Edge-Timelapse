@@ -107,7 +107,12 @@ class Visualizer():
         networkx.draw_networkx_edge_labels(self.graph, pos, edge_labels=edge_labels)
         if self.legend:
             legend_elements = [plt.Line2D([0], [0], linestyle="none")]  # Placeholder for the custom handler
-            plt.legend(handles=legend_elements, bbox_to_anchor=(0.88, 0.02), loc='lower right', handler_map={legend_elements[0]: TextLegendHandler(self.legend, fontsize=20, )})
+            plt.legend(
+                handles=legend_elements, 
+                bbox_to_anchor=(0.80, 0.02), 
+                loc='lower right', 
+                handler_map={legend_elements[0]: TextLegendHandler(self.legend, fontsize=35, )}
+            )
             plt.subplots_adjust(right=0.75)
         if self.title:
             plt.title(self.title)

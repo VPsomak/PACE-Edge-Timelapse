@@ -7,6 +7,7 @@ name = "pypi"
 pulp = "*"
 networkx = "*"
 matplotlib = "*"
+pandas = "*"
 
 [dev-packages]
 
